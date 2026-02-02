@@ -1,3 +1,7 @@
+"""
+DashboardWindow - Vista principal de gestión de licitaciones con tema moderno.
+Actualizado con esquema de colores Titanium Construct v2.
+"""
 from __future__ import annotations
 
 from typing import Optional, Iterable
@@ -12,7 +16,7 @@ from PyQt6.QtWidgets import (
     QPushButton, QHeaderView, QMenu, QGroupBox, QGridLayout, QSizePolicy,
     QDialog, QTableWidget, QTableWidgetItem, QDialogButtonBox, QAbstractItemView, QFrame, QSplitter
 )
-from PyQt6.QtGui import QGuiApplication, QCloseEvent, QDesktopServices, QColor, QBrush
+from PyQt6.QtGui import QGuiApplication, QCloseEvent, QDesktopServices, QColor, QBrush, QPalette
 
 from app.core.models import Licitacion
 from app.core.logic.status_engine import StatusEngine, DefaultStatusEngine, NextDeadline
@@ -36,8 +40,10 @@ DIFERENCIA_PCT_ROLE = Qt.ItemDataRole.UserRole + 1013
 
 
 class DashboardWindow(QWidget):
+    """Vista principal de gestión de licitaciones con tema moderno."""
+    
     countsChanged = pyqtSignal(int, int)
-    detailRequested = pyqtSignal(object)  # Envía el objeto Licitacion o el N° de proceso
+    detailRequested = pyqtSignal(object)
 
     def __init__(self, model, parent: QWidget | None = None, status_engine: Optional[StatusEngine] = None):
         super().__init__(parent)
@@ -59,9 +65,12 @@ class DashboardWindow(QWidget):
         self._docs_role: Optional[int] = DOCS_PROGRESS_ROLE
         self._dif_role: Optional[int] = DIFERENCIA_PCT_ROLE
 
+        # ✅ Obtener colores del tema
+        self._resolve_theme_colors()
+        
         self._build_ui()
-        self._setup_models()    # Asigna el modelo antes de conectar señales
-        self._wire()            # Conexiones de señales
+        self._setup_models()
+        self._wire()
 
         self._populate_filter_values()
         self._apply_filters_to_both()
@@ -70,19 +79,45 @@ class DashboardWindow(QWidget):
         self._restore_settings()
         self._setup_context_menus()
 
+    def _resolve_theme_colors(self):
+        """Obtiene colores dinámicos del tema de la aplicación."""
+        app = QGuiApplication.instance()
+        pal: QPalette = app.palette() if app else QPalette()
+        
+        def get_color(role: QPalette.ColorRole, fallback: str) -> str:
+            try:
+                color = pal.color(role)
+                if color.isValid():
+                    return color.name()
+            except Exception:
+                pass
+            return fallback
+        
+        self.colors = {
+            "accent": get_color(QPalette.ColorRole.Highlight, "#7C4DFF"),
+            "text": get_color(QPalette.ColorRole.Text, "#E6E9EF"),
+            "text_sec": get_color(QPalette.ColorRole.PlaceholderText, "#B9C0CC"),
+            "window": get_color(QPalette.ColorRole.Window, "#1E1E1E"),
+            "base": get_color(QPalette.ColorRole.Base, "#252526"),
+            "alt": get_color(QPalette.ColorRole.AlternateBase, "#2D2D30"),
+            "border": get_color(QPalette.ColorRole.Mid, "#3E3E42"),
+            "success": "#00C853",
+            "danger": "#FF5252",
+            "warning": "#FFA726",
+            "info": "#448AFF",
+        }
+
     def abrir_nueva_licitacion(self):
         dlg = ventana_agregar_licitacion(self)
         dlg.exec()
 
     def _wire(self):
-        # Conecta señales SOLO si selectionModel ya existe (después de setModel)
         if self.tableActivas.selectionModel():
             self.tableActivas.selectionModel().selectionChanged.connect(self._sync_right_panel_with_selection)
         if self.tableFinalizadas.selectionModel():
             self.tableFinalizadas.selectionModel().selectionChanged.connect(self._sync_right_panel_with_selection)
         self.tabs.currentChanged.connect(self._sync_right_panel_with_selection)
 
-        # Conexiones de filtros
         self.searchEdit.textChanged.connect(self._debounce.start)
         self.loteEdit.textChanged.connect(self._debounce.start)
         self.estadoCombo.currentIndexChanged.connect(self._apply_filters_to_both)
@@ -90,10 +125,8 @@ class DashboardWindow(QWidget):
         self.clearBtn.clicked.connect(self._clear_filters)
         self._debounce.timeout.connect(self._apply_filters_to_both)
 
-        # Conexión para KPIs
         self.tabs.currentChanged.connect(self._on_tab_changed)
 
-        # Conexión para doble clic (abrir detalle)
         self.tableActivas.doubleClicked.connect(self._on_double_click)
         self.tableFinalizadas.doubleClicked.connect(self._on_double_click)
 
@@ -102,8 +135,25 @@ class DashboardWindow(QWidget):
         root.setContentsMargins(10, 10, 10, 10)
         root.setSpacing(10)
 
-        # ----------------- Grupo Filtros y Búsqueda -----------------
+        # ==================== Grupo Filtros y Búsqueda ====================
         self.filtersGroup = QGroupBox("Filtros y Búsqueda", self)
+        self.filtersGroup.setStyleSheet(f"""
+            QGroupBox {{
+                background-color: {self.colors['base']};
+                border: 1px solid {self.colors['border']};
+                border-radius: 8px;
+                padding: 15px;
+                font-size: 12pt;
+                font-weight: bold;
+                color: {self.colors['accent']};
+                margin-top: 10px;
+            }}
+            QGroupBox::title {{
+                subcontrol-origin: margin;
+                subcontrol-position: top left;
+                padding: 0 8px;
+            }}
+        """)
         self.filtersGroup.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         fg_h = QHBoxLayout(self.filtersGroup)
         fg_h.setContentsMargins(10, 10, 10, 10)
@@ -121,10 +171,45 @@ class DashboardWindow(QWidget):
         self.empresaCombo = QComboBox()
         self.empresaCombo.addItem("Todas")
 
+        # ✅ Estilos modernos para inputs
+        input_style = f"""
+            QLineEdit, QComboBox {{
+                background-color: {self.colors['alt']};
+                border: 2px solid {self.colors['border']};
+                border-radius: 6px;
+                padding: 6px 10px;
+                color: {self.colors['text']};
+                font-size: 10pt;
+            }}
+            QLineEdit:focus, QComboBox:focus {{
+                border-color: {self.colors['accent']};
+            }}
+            QComboBox::drop-down {{
+                border: none;
+                width: 20px;
+            }}
+            QComboBox::down-arrow {{
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid {self.colors['text']};
+                margin-right: 5px;
+            }}
+        """
+        
+        self.searchEdit.setStyleSheet(input_style)
+        self.loteEdit.setStyleSheet(input_style)
+        self.estadoCombo.setStyleSheet(input_style)
+        self.empresaCombo.setStyleSheet(input_style)
+
         lbl_buscar = QLabel("Buscar Proceso:")
         lbl_lote = QLabel("Contiene Lote:")
         lbl_estado = QLabel("Estado:")
         lbl_empresa = QLabel("Empresa:")
+
+        label_style = f"color: {self.colors['text']}; font-size: 10pt; font-weight: 600;"
+        for lbl in [lbl_buscar, lbl_lote, lbl_estado, lbl_empresa]:
+            lbl.setStyleSheet(label_style)
 
         filters_layout.addWidget(lbl_buscar, 0, 0)
         filters_layout.addWidget(self.searchEdit, 0, 1)
@@ -141,9 +226,22 @@ class DashboardWindow(QWidget):
         self.empresaCombo.setMinimumWidth(150)
 
         self.clearBtn = QPushButton("Limpiar Filtros")
-        self.clearBtn.setFixedHeight(28)
-        # Neutro; si quisieras que fuera "peligroso", podrías usar class="danger"
-        # self.clearBtn.setProperty("class", "danger")
+        self.clearBtn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.colors['border']};
+                color: {self.colors['text']};
+                border: none;
+                border-radius: 6px;
+                padding: 8px 16px;
+                font-size: 10pt;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {self.colors['danger']};
+                color: white;
+            }}
+        """)
+        self.clearBtn.setFixedHeight(32)
         filters_layout.addWidget(self.clearBtn, 0, 4, 2, 1, alignment=Qt.AlignmentFlag.AlignTop)
 
         fg_h.addLayout(filters_layout, 5)
@@ -153,6 +251,13 @@ class DashboardWindow(QWidget):
         right.setSpacing(6)
 
         self.nextDueTitle = QLabel("Próximo Vencimiento")
+        self.nextDueTitle.setStyleSheet(f"""
+            QLabel {{
+                color: {self.colors['accent']};
+                font-size: 11pt;
+                font-weight: bold;
+            }}
+        """)
         self.nextDueTitle.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
         self.nextDueArea = QLabel("-- Selecciona una Fila --")
@@ -160,14 +265,15 @@ class DashboardWindow(QWidget):
         self.nextDueArea.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         self.nextDueArea.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.nextDueArea.setTextFormat(Qt.TextFormat.RichText)
-        # Tarjeta estilo Titanium (Primary-50 + borde neutro)
-        self.nextDueArea.setStyleSheet("""
-            background-color: #EFF6FF;
-            color: #111827;
-            padding: 12px;
-            border-radius: 6px;
-            font-size: 13px;
-            border: 1px solid #D1D5DB;
+        self.nextDueArea.setStyleSheet(f"""
+            QLabel {{
+                background-color: {self.colors['alt']};
+                color: {self.colors['text']};
+                padding: 12px;
+                border-radius: 8px;
+                font-size: 11pt;
+                border: 1px solid {self.colors['border']};
+            }}
         """)
         self.nextDueArea.setMinimumHeight(70)
 
@@ -176,11 +282,56 @@ class DashboardWindow(QWidget):
 
         fg_h.addLayout(right, 4)
 
-        # ----------------- Tabs (listado) -----------------
+        # ==================== Tabs (listado) ====================
         self.tabs = QTabWidget()
+        self.tabs.setStyleSheet(f"""
+            QTabWidget::pane {{
+                border: 1px solid {self.colors['border']};
+                background-color: {self.colors['base']};
+                border-radius: 6px;
+            }}
+            QTabBar::tab {{
+                background-color: {self.colors['alt']};
+                color: {self.colors['text_sec']};
+                padding: 10px 20px;
+                margin-right: 2px;
+                border-top-left-radius: 6px;
+                border-top-right-radius: 6px;
+                font-weight: 600;
+            }}
+            QTabBar::tab:selected {{
+                background-color: {self.colors['accent']};
+                color: white;
+            }}
+            QTabBar::tab:hover {{
+                background-color: {self.colors['border']};
+            }}
+        """)
+        
         self.tableActivas = QTableView()
         self.tableFinalizadas = QTableView()
+        
+        table_style = f"""
+            QTableView {{
+                gridline-color: {self.colors['border']};
+                background-color: {self.colors['base']};
+                alternate-background-color: {self.colors['alt']};
+                selection-background-color: {self.colors['accent']};
+                selection-color: white;
+                border: none;
+            }}
+            QHeaderView::section {{
+                background-color: {self.colors['alt']};
+                color: {self.colors['text']};
+                padding: 8px;
+                border: none;
+                border-bottom: 2px solid {self.colors['accent']};
+                font-weight: bold;
+            }}
+        """
+        
         for tv in (self.tableActivas, self.tableFinalizadas):
+            tv.setStyleSheet(table_style)
             tv.setAlternatingRowColors(True)
             tv.setSortingEnabled(True)
             tv.horizontalHeader().setStretchLastSection(True)
@@ -195,7 +346,7 @@ class DashboardWindow(QWidget):
         self.tabs.addTab(self.tableActivas, "Licitaciones Activas (0)")
         self.tabs.addTab(self.tableFinalizadas, "Licitaciones Finalizadas (0)")
 
-        # ----------------- KPIs -----------------
+        # ==================== KPIs ====================
         kpi_bar = QHBoxLayout()
         kpi_bar.setSpacing(16)
 
@@ -204,23 +355,45 @@ class DashboardWindow(QWidget):
         self.kpiLotesGanados = QLabel("Lotes Ganados: 0")
         self.kpiPerdidas = QLabel("Perdidas: 0")
 
-        # Estilo Titanium para KPIs: tipografía y colores
-        for w in (self.kpiScope, self.kpiGanadas, self.kpiLotesGanados, self.kpiPerdidas):
-            font = w.font()
-            font.setPointSize(11)
-            font.setBold(True)
-            w.setFont(font)
-
-        self.kpiScope.setStyleSheet("color: #111827;")        # Neutral
-        self.kpiGanadas.setStyleSheet("color: #16A34A;")      # Verde
-        self.kpiLotesGanados.setStyleSheet("color: #0E4F70;") # Azul primario fuerte
-        self.kpiPerdidas.setStyleSheet("color: #DC2626;")     # Rojo
+        # ✅ Estilos modernos para KPIs
+        kpi_base_style = f"""
+            QLabel {{
+                background-color: {{bg_color}};
+                color: {{text_color}};
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-size: 12pt;
+                font-weight: bold;
+                border: 2px solid {{border_color}};
+            }}
+        """
+        
+        self.kpiScope.setStyleSheet(kpi_base_style.format(
+            bg_color=self.colors['alt'],
+            text_color=self.colors['text'],
+            border_color=self.colors['border']
+        ))
+        self.kpiGanadas.setStyleSheet(kpi_base_style.format(
+            bg_color=self.colors['alt'],
+            text_color=self.colors['success'],
+            border_color=self.colors['success']
+        ))
+        self.kpiLotesGanados.setStyleSheet(kpi_base_style.format(
+            bg_color=self.colors['alt'],
+            text_color=self.colors['info'],
+            border_color=self.colors['info']
+        ))
+        self.kpiPerdidas.setStyleSheet(kpi_base_style.format(
+            bg_color=self.colors['alt'],
+            text_color=self.colors['danger'],
+            border_color=self.colors['danger']
+        ))
 
         for w in (self.kpiScope, self.kpiGanadas, self.kpiLotesGanados, self.kpiPerdidas):
             kpi_bar.addWidget(w)
         kpi_bar.addStretch(1)
 
-        # ----------------- Splitter vertical -----------------
+        # ==================== Splitter vertical ====================
         self._mainSplitter = QSplitter(Qt.Orientation.Vertical, self)
 
         top_w = QWidget(self)
@@ -238,9 +411,8 @@ class DashboardWindow(QWidget):
 
         self._mainSplitter.setCollapsible(0, False)
         self._mainSplitter.setCollapsible(1, False)
-        self._mainSplitter.setSizes([200, 1000])  # valor inicial; el usuario lo ajusta
+        self._mainSplitter.setSizes([200, 1000])
 
-        # Restaurar estado anterior si existe
         try:
             s = QSettings()
             st = s.value("gestor_licitaciones/main_splitter_state", None)
@@ -251,8 +423,10 @@ class DashboardWindow(QWidget):
 
         root.addWidget(self._mainSplitter, 1)
 
+    # ==================== RESTO DE MÉTODOS (sin cambios funcionales) ====================
+    # Los métodos restantes continúan igual, solo cambian los estilos visuales aplicados arriba
+    
     def closeEvent(self, event):
-        # Guardar estado del splitter
         try:
             s = QSettings()
             s.setValue("gestor_licitaciones/main_splitter_state", self._mainSplitter.saveState())

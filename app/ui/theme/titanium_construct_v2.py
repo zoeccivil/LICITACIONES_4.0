@@ -4,6 +4,7 @@ Professional dark theme with purple accent (#7C4DFF) for dashboard applications.
 Based on the Titanium Construct design system.
 """
 from __future__ import annotations
+from typing import Dict
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtGui import QPalette, QColor
 from PyQt6.QtCore import Qt
@@ -473,3 +474,48 @@ def apply_titanium_construct_v2(app: QApplication) -> None:
     palette.setColor(QPalette.ColorRole.HighlightedText, TEXT)
     
     app.setPalette(palette)
+
+
+def get_theme_colors() -> Dict[str, str]:
+    """
+    Retorna los colores del tema Titanium Construct v2 como diccionario.
+    
+    Returns:
+        Dict con colores en formato hexadecimal
+    """
+    return {
+        "accent": "#7C4DFF",
+        "text": "#FFFFFF",
+        "text_sec": "#B0B0B0",
+        "window": "#1E1E1E",
+        "base": "#2D2D30",
+        "alt": "#252526",
+        "border": "#3E3E42",
+        "success": "#00C853",
+        "danger": "#FF5252",
+        "warning": "#FFAB00",
+        "info": "#448AFF",
+    }
+
+
+def apply_titanium_construct_v2_with_icons(app: QApplication) -> None:
+    """
+    Aplica el tema Titanium Construct v2 Y configura los iconos SVG.
+    
+    Args:
+        app: Instancia de QApplication
+    """
+    # Aplicar tema CSS
+    apply_titanium_construct_v2(app)
+    
+    # Configurar iconos con los colores del tema
+    try:
+        from app.ui.components.icon_manager import get_icon_manager
+        
+        colors = get_theme_colors()
+        icon_manager = get_icon_manager()
+        icon_manager.set_theme_colors(colors)
+        
+        print(f"[INFO] ✓ Iconos SVG configurados con tema {THEME_NAME}")
+    except Exception as e:
+        print(f"[WARNING] No se pudieron configurar iconos SVG: {e}")

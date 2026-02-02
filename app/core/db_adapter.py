@@ -1,9 +1,12 @@
-"""Database adapter that proxies all persistence to Firebase Firestore."""
+"""Database adapter that proxies all persistence to Firebase Firestore with local caching."""
 from __future__ import annotations
 
 import datetime as _dt
 import unicodedata
 from typing import Any, Callable, Dict, Iterable, List, Optional
+import pickle
+from pathlib import Path
+from datetime import datetime, timedelta
 
 from google.cloud.firestore import Client
 
@@ -16,11 +19,12 @@ from .firebase_adapter import (
     set_doc,
     subscribe_collection,
     update_doc,
-    find_one_by_field,  # requiere versión actualizada de firebase_adapter
+    find_one_by_field,
 )
 from .models import Documento, Empresa, Licitacion, Lote, Oferente
 from app.core.log_utils import get_logger
 from app.core.utils import normalize_lote_numero
+
 logger = get_logger("db_adapter")
 
 
@@ -55,20 +59,41 @@ def _canon(s: str) -> str:
 
 
 class DatabaseAdapter:
-    """High level helper used by the PyQt UI to interact with Firestore."""
+    """
+    High level helper used by the PyQt UI to interact with Firestore.
+    Incluye caché local en disco para reducir lecturas de Firestore.
+    """
 
     def __init__(self, client: Optional[Client] = None) -> None:
         self._client = client
         self._subscriptions: List[Callable[[], None]] = []
+        
+        # ✅ Caché en memoria
+        self._all_licitaciones: List[Licitacion] = []
+        
+        # ✅ NUEVO: Guardar caché en la raíz del proyecto
+        from pathlib import Path
+        project_root = Path(__file__).parent.parent.parent  # app/core/db_adapter.py -> raíz
+        cache_dir = project_root / ".cache"
+        cache_dir.mkdir(exist_ok=True)
+        
+        self._cache_file = cache_dir / "licitaciones_firestore.pkl"
+        self._cache_duration = timedelta(hours=2)  # Caché válido por 2 horas
+        
+        logger.info(f"Caché configurado en: {self._cache_file}")
 
     # ------------------------------------------------------------------
     # Lifecycle
     # ------------------------------------------------------------------
-    def open(self) -> None:  # compatibility no-op
+    def open(self) -> None:
+        """Abre la conexión (no hace nada en Firestore)."""
         if self._client is None:
             self._client = get_client()
+        
+        logger.debug("DatabaseAdapter.open() - Firestore no requiere abrir conexión")
 
     def close(self) -> None:
+        """Cierra subscripciones activas."""
         for unsubscribe in self._subscriptions:
             try:
                 unsubscribe()
@@ -85,25 +110,175 @@ class DatabaseAdapter:
         return self._client
 
     # ------------------------------------------------------------------
-    # Licitaciones CRUD
+    # ✅ MÉTODOS DE CACHÉ
+    # ------------------------------------------------------------------
+    def _load_from_cache(self) -> bool:
+        """
+        Intenta cargar licitaciones desde el caché en disco.
+        
+        Returns:
+            True si se cargó correctamente, False en caso contrario.
+        """
+        if not self._cache_file.exists():
+            return False
+        
+        try:
+            # Verificar antigüedad del caché
+            cache_mtime = datetime.fromtimestamp(self._cache_file.stat().st_mtime)
+            cache_age = datetime.now() - cache_mtime
+            
+            if cache_age > self._cache_duration:
+                logger.info(f"Caché expirado ({cache_age.total_seconds() / 60:.1f} minutos), se descartará")
+                self._cache_file.unlink()
+                return False
+            
+            # Cargar desde caché
+            with open(self._cache_file, 'rb') as f:
+                self._all_licitaciones = pickle.load(f)
+            
+            print(f"[INFO] ✓ {len(self._all_licitaciones)} licitaciones cargadas desde caché")
+            print(f"[DEBUG] Caché tiene {cache_age.total_seconds() / 60:.1f} minutos de antigüedad")
+            logger.info(f"✓ {len(self._all_licitaciones)} licitaciones cargadas desde caché")
+            return True
+            
+        except Exception as e:
+            logger.warning(f"Error leyendo caché: {e}")
+            if self._cache_file.exists():
+                try:
+                    self._cache_file.unlink()
+                except Exception:
+                    pass
+            return False
+    
+    def _save_to_cache(self):
+        """Guarda las licitaciones actuales en el caché."""
+        if not self._all_licitaciones:
+            print("[DEBUG] No hay datos para guardar en caché")
+            logger.debug("No hay datos para guardar en caché")
+            return
+        
+        try:
+            with open(self._cache_file, 'wb') as f:
+                pickle.dump(self._all_licitaciones, f)
+            
+            # Mostrar tamaño del archivo
+            size_mb = self._cache_file.stat().st_size / (1024 * 1024)
+            print(f"[INFO] ✓ Caché guardado: {len(self._all_licitaciones)} licitaciones ({size_mb:.2f} MB)")
+            
+           
+            logger.info(f"✓ Caché guardado: {len(self._all_licitaciones)} licitaciones ({size_mb:.2f} MB)")
+            
+        except Exception as e:
+            print(f"[WARNING] Error guardando caché: {e}")
+            logger.warning(f"Error guardando caché: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def invalidate_cache(self):
+        """
+        Invalida el caché actual.
+        Debe llamarse después de guardar/modificar/eliminar licitaciones.
+        """
+        if self._cache_file.exists():
+            try:
+                self._cache_file.unlink()
+                logger.info("✓ Caché invalidado")
+            except Exception as e:
+                logger.warning(f"Error eliminando caché: {e}")
+        
+        self._all_licitaciones = []
+
+    # ------------------------------------------------------------------
+    # Licitaciones CRUD (CON CACHÉ)
     # ------------------------------------------------------------------
     def subscribe_to_licitaciones(self, callback: Callable[[List[Licitacion]], None]) -> None:
+        """Suscripción en tiempo real a cambios en Firestore."""
         def _on_update(items: List[Dict[str, Any]]):
+            # ✅ NO invalidar caché en sincronización en tiempo real
+            # El caché debe persistir entre sesiones
+            print("[DEBUG] Sincronización en tiempo real: datos actualizados (caché preservado)")
             callback([self._map_licitacion_dict_to_model(item) for item in items])
 
         unsubscribe = subscribe_collection(LICITACIONES_COLLECTION, _on_update)
         self._subscriptions.append(unsubscribe)
 
-    def load_all_licitaciones(self) -> List[Licitacion]:
+    def load_all_licitaciones(self, force_refresh: bool = False) -> List[Licitacion]:
+        """
+        Carga todas las licitaciones con soporte de caché.
+        
+        Estrategia:
+        1. Si force_refresh=True → invalidar caché y consultar Firestore
+        2. Si ya están en memoria → retornar desde memoria
+        3. Si hay caché válido → cargar desde caché
+        4. Si no → consultar Firestore y guardar en caché
+        
+        Args:
+            force_refresh: Si es True, ignora el caché y consulta Firestore
+        
+        Returns:
+            Lista de licitaciones
+        """
+        # Si se fuerza refresh, invalidar caché
+        if force_refresh:
+            print("[INFO] Refresh forzado, invalidando caché...")  # ✅ AÑADIR
+            logger.info("Refresh forzado, invalidando caché...")
+            self.invalidate_cache()
+        
+        # Si ya están en memoria, retornar
+        if self._all_licitaciones and not force_refresh:
+            print(f"[DEBUG] Retornando {len(self._all_licitaciones)} licitaciones desde memoria")  # ✅ AÑADIR
+            logger.debug(f"Retornando {len(self._all_licitaciones)} licitaciones desde memoria")
+            return self._all_licitaciones
+        
+        # Intentar cargar desde caché
+        if not force_refresh and self._load_from_cache():
+            return self._all_licitaciones
+        
+        # Si no hay caché válido, consultar Firestore
+        print("[INFO] Consultando Firestore...")  # ✅ AÑADIR
+        logger.info("Consultando Firestore...")
+        
         docs = get_all(LICITACIONES_COLLECTION)
-        return [self._map_licitacion_dict_to_model(doc) for doc in docs]
+        
+        result = []
+        total = len(docs)
+        
+        for i, data in enumerate(docs, 1):
+            if i % 10 == 0 or i == total:
+                print(f"[DEBUG] Mapeando licitación {i}/{total}...")  # ✅ AÑADIR
+                logger.debug(f"Mapeando licitación {i}/{total}...")
+            
+            lic = self._map_licitacion_dict_to_model(data)
+            if lic:
+                result.append(lic)
+        
+        self._all_licitaciones = result
+        
+        # Guardar en caché para la próxima vez
+        self._save_to_cache()
+        
+        print(f"[INFO] ✓ {len(result)} licitaciones cargadas desde Firestore")  # ✅ AÑADIR
+        logger.info(f"✓ {len(result)} licitaciones cargadas desde Firestore")
+        
+        return result
 
     def list_licitaciones(self) -> List[Licitacion]:
+        """Alias de load_all_licitaciones()."""
         return self.load_all_licitaciones()
 
     def load_licitacion_by_id(self, lic_id: Any) -> Optional[Licitacion]:
+        """Carga una licitación por ID (usa caché si está disponible)."""
         if lic_id is None:
             return None
+        
+        # Buscar primero en caché de memoria
+        if self._all_licitaciones:
+            for lic in self._all_licitaciones:
+                if str(lic.id) == str(lic_id):
+                    logger.debug(f"Licitación {lic_id} encontrada en caché de memoria")
+                    return lic
+        
+        # Si no está en memoria, consultar Firestore
         data = get_by_id(LICITACIONES_COLLECTION, str(lic_id))
         if not data:
             return None
@@ -122,11 +297,13 @@ class DatabaseAdapter:
             found = find_one_by_field(LICITACIONES_COLLECTION, "numero_canon", numero_canon)
             if found:
                 return found
+        
         # Intento exacto por numero_proceso (por compatibilidad)
         if numero_raw:
             found = find_one_by_field(LICITACIONES_COLLECTION, "numero_proceso", numero_raw)
             if found:
                 return found
+        
         # Último recurso: barrido en memoria (dataset pequeño)
         for doc in get_all(LICITACIONES_COLLECTION):
             doc_num = doc.get("numero_proceso") or ""
@@ -135,6 +312,7 @@ class DatabaseAdapter:
         return None
 
     def load_licitacion_by_numero(self, numero: str) -> Optional[Licitacion]:
+        """Carga una licitación por número de proceso."""
         numero = (numero or "").strip()
         if not numero:
             return None
@@ -156,29 +334,19 @@ class DatabaseAdapter:
             * Busca primero por numero_canon; si no, por numero_proceso; si no, barrido canónico.
             * Si existe: actualiza ese doc (evita duplicados).
             * Si no existe: crea nuevo doc.
-        - Limpia 'id': None/"" del payload antes de escribir para no almacenar 'id': None. 
+        - Limpia 'id': None/"" del payload antes de escribir para no almacenar 'id': None.
+        - ✅ Invalida el caché después de guardar.
         """
-        # DEBUG consola
-        print("[DEBUG][DB.save_licitacion] Guardando licitación ID actual:",
-            getattr(licitacion, "id", None),
-            "numero_proceso:", getattr(licitacion, "numero_proceso", None))
-        print(f"[DEBUG][DB.save_licitacion] empresas_nuestras: {len(getattr(licitacion, 'empresas_nuestras', []))} empresas")
-        print("[DEBUG][DB.save_licitacion] Lotes en objeto Licitacion antes de to_dict:")
-        for l in licitacion.lotes:
-            print(f"   [MODEL-LOTE] numero={l.numero!r}, empresa_nuestra={getattr(l, 'empresa_nuestra', None)!r}, monto_ofertado={getattr(l, 'monto_ofertado', None)!r}")
-
-        # DEBUG a archivo
-        from app.core. log_utils import get_logger  # import local para evitar ciclos
-        logger = get_logger("db_adapter")
         logger.debug(
             "save_licitacion: Guardando licitación ID=%s numero_proceso=%s empresas_nuestras=%s",
             getattr(licitacion, "id", None),
             getattr(licitacion, "numero_proceso", None),
             len(getattr(licitacion, "empresas_nuestras", [])),
         )
+        
         for l in licitacion.lotes:
             logger.debug(
-                "save_licitacion MODEL-LOTE before to_dict:  numero=%r empresa_nuestra=%r monto_base=%r monto_base_personal=%r monto_ofertado=%r participamos=%r fase_A_superada=%r ganador_nombre=%r ganado_por_nosotros=%r",
+                "save_licitacion MODEL-LOTE before to_dict: numero=%r empresa_nuestra=%r monto_base=%r monto_base_personal=%r monto_ofertado=%r participamos=%r fase_A_superada=%r ganador_nombre=%r ganado_por_nosotros=%r",
                 getattr(l, "numero", None),
                 getattr(l, "empresa_nuestra", None),
                 getattr(l, "monto_base", None),
@@ -192,13 +360,7 @@ class DatabaseAdapter:
 
         payload = licitacion.to_dict() or {}
 
-        # DEBUG consola:  payload inicial
-        print("[DEBUG][DB.save_licitacion] Payload.to_dict() lotes a guardar:")
-        for l in payload.get("lotes", []):
-            print("   [PAYLOAD-LOTE]", l)
-
-        # DEBUG archivo: payload inicial
-        logger.debug("save_licitacion:  Payload lotes a guardar (después de to_dict):")
+        logger.debug("save_licitacion: Payload lotes a guardar (después de to_dict):")
         for l in payload.get("lotes", []):
             logger.debug("PAYLOAD-LOTE %s", l)
 
@@ -215,38 +377,33 @@ class DatabaseAdapter:
 
         lic_id = licitacion.id or payload.get("id")
 
-        # DEBUG consola: payload final antes de escribir
-        print("[DEBUG][DB.save_licitacion] numero_proceso normalizado:", numero_raw)
-        print("[DEBUG][DB.save_licitacion] ID usado para upsert:", lic_id)
-        print("[DEBUG][DB.save_licitacion] Lotes en payload final antes de set_doc/add_doc:")
-        for l in payload.get("lotes", []):
-            print("   [FINAL-LOTE]", l)
-
-        # DEBUG archivo: payload final antes de set_doc/add_doc
         logger.debug("save_licitacion: numero_proceso normalizado=%s ID_usado=%s", numero_raw, lic_id)
-        logger.debug("save_licitacion:  Lotes en payload final antes de set_doc/add_doc:")
+        logger.debug("save_licitacion: Lotes en payload final antes de set_doc/add_doc:")
         for l in payload.get("lotes", []):
             logger.debug("FINAL-LOTE %s", l)
 
         # Si es actualización (hay id), actualiza tal cual
         if lic_id:
-            print(f"[DEBUG][DB. save_licitacion] Actualizando documento existente {lic_id} en Firestore")
             logger.debug("save_licitacion: Actualizando documento existente id=%s", lic_id)
             set_doc(LICITACIONES_COLLECTION, str(lic_id), payload)
             licitacion.id = str(lic_id)
+            
+            # ✅ Invalidar caché después de actualizar
+            self.invalidate_cache()
+            
             return str(lic_id)
 
         # Si es creación, validar mínimos
         lotes_payload = payload.get("lotes")
         if lotes_payload is None and getattr(licitacion, "lotes", None) is not None:
             lotes_payload = [
-                (l.to_dict() if hasattr(l, "to_dict") else dict(l))  # type: ignore
+                (l.to_dict() if hasattr(l, "to_dict") else dict(l))
                 for l in licitacion.lotes
             ]
 
         empresas_nuestras = payload.get("empresas_nuestras") or getattr(licitacion, "empresas_nuestras", None) or []
 
-        # Validación:  código, nombre, al menos una empresa y al menos un lote
+        # Validación: código, nombre, al menos una empresa y al menos un lote
         errores = []
         if not numero_raw: 
             errores.append("Código (numero_proceso)")
@@ -269,26 +426,34 @@ class DatabaseAdapter:
         # Upsert robusto por número
         existing = self._find_existing_by_numero(numero_raw)
         if existing:
-            print(f"[DEBUG][DB.save_licitacion] Upsert:  actualizando doc existente con id={existing['id']}")
             logger.debug("save_licitacion: Upsert actualizando doc existente id=%s", existing["id"])
             set_doc(LICITACIONES_COLLECTION, existing["id"], payload)
             licitacion.id = existing["id"]
+            
+            # ✅ Invalidar caché después de actualizar
+            self.invalidate_cache()
+            
             return str(existing["id"])
 
         # Crear nuevo documento (ID automático)
-        print("[DEBUG][DB.save_licitacion] Creando nuevo documento en Firestore...")
         logger.debug("save_licitacion: Creando nuevo documento en Firestore (add_doc)")
         new_id = add_doc(LICITACIONES_COLLECTION, payload)
-        print("[DEBUG][DB.save_licitacion] Nuevo documento creado con id:", new_id)
         logger.debug("save_licitacion: Nuevo documento creado con id=%s", new_id)
         licitacion.id = new_id
+        
+        # ✅ Invalidar caché después de crear
+        self.invalidate_cache()
+        
         return str(new_id)
 
-
     def delete_licitacion(self, lic_id: Any) -> None:
+        """Elimina una licitación."""
         if lic_id is None:
             return
         delete_doc(LICITACIONES_COLLECTION, str(lic_id))
+        
+        # ✅ Invalidar caché después de eliminar
+        self.invalidate_cache()
 
     # ------------------------------------------------------------------
     # Master collections helpers
@@ -379,14 +544,14 @@ class DatabaseAdapter:
 
     def is_institucion_en_uso(self, nombre_institucion: str) -> bool:
         nombre = (nombre_institucion or "").strip().lower()
-        for lic in self.load_all_licititaciones():
+        for lic in self.load_all_licitaciones():
             if (lic.institucion or "").strip().lower() == nombre:
                 return True
         return False
 
     def is_empresa_en_uso(self, nombre_empresa: str) -> bool:
         nombre = (nombre_empresa or "").strip().lower()
-        for lic in self.load_all_licititaciones():
+        for lic in self.load_all_licitaciones():
             if any((emp.nombre or "").strip().lower() == nombre for emp in lic.empresas_nuestras):
                 return True
             if any((lote.empresa_nuestra or "").strip().lower() == nombre for lote in lic.lotes):
@@ -396,8 +561,6 @@ class DatabaseAdapter:
     # ------------------------------------------------------------------
     # Auxiliar mappers
     # ------------------------------------------------------------------
-
-
     def _map_lote_dict_to_model(self, data: Dict[str, Any]) -> Lote:
         return Lote(
             id=data.get("id"),
@@ -413,23 +576,15 @@ class DatabaseAdapter:
             empresa_nuestra=data.get("empresa_nuestra") or None,
         )
 
-
     def _map_licitacion_dict_to_model(self, data: Dict[str, Any]) -> Licitacion:
-        # DEBUG consola: ver cómo vienen los lotes crudos desde Firestore
-        print("[DEBUG][DB._map_licitacion] Mapeando licitación desde dict. ID:",
-              data.get("id"), "numero_proceso:", data.get("numero_proceso"))
-        print("[DEBUG][DB._map_licitacion] Lotes crudos desde Firestore:")
-        for l in data.get("lotes", []):
-            print("   [RAW-LOTE]", l)
-
-        # DEBUG archivo
-        from app.core.log_utils import get_logger
-        logger = get_logger("db_adapter")
+        """Mapea un diccionario de Firestore a un objeto Licitacion."""
+        
         logger.debug(
             "_map_licitacion_dict_to_model: Mapeando licitación ID=%s numero_proceso=%s",
             data.get("id"),
             data.get("numero_proceso"),
         )
+        
         for l in data.get("lotes", []):
             logger.debug("RAW-LOTE from Firestore: %s", l)
 
@@ -461,12 +616,6 @@ class DatabaseAdapter:
         lic.fallas_fase_a = data.get("fallas_fase_a", [])
         lic.parametros_evaluacion = data.get("parametros_evaluacion", {})
 
-        # DEBUG consola: ver cómo quedan los lotes mapeados
-        print("[DEBUG][DB._map_licitacion] Lotes mapeados a modelo:")
-        for l in lic.lotes:
-            print(f"   [MODEL-LOTE] numero={l.numero!r}, empresa_nuestra={getattr(l, 'empresa_nuestra', None)!r}")
-
-        # DEBUG archivo: lotes mapeados
         logger.debug("_map_licitacion_dict_to_model: Lotes mapeados a modelo:")
         for l in lic.lotes:
             logger.debug(
@@ -482,8 +631,8 @@ class DatabaseAdapter:
                 getattr(l, "ganado_por_nosotros", None),
             )
 
-        return lic    
-
+        return lic
+    
     def _map_documento_dict_to_model(self, data: Dict[str, Any]) -> Documento:
         return Documento(
             id=data.get("id"),
@@ -593,7 +742,6 @@ class DatabaseAdapter:
 
         self.save_licitacion(lic)
         return True
-    
 
     def borrar_ganador_lote(self, licitacion_id: Any, lote_num: str) -> bool:
         lic = self.load_licitacion_by_id(licitacion_id)

@@ -11,7 +11,8 @@ from PyQt6.QtWidgets import (
     QFrame, QVBoxLayout, QHBoxLayout, QLabel, 
     QPushButton, QWidget, QProgressBar, QSizePolicy
 )
-
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QCursor
 
 class StatCard(QFrame):
     """
@@ -254,167 +255,130 @@ class ModernProgressBar(QWidget):
 
 class ModernSidebar(QFrame):
     """
-    Barra lateral de navegación con botones estilizados.
-    Incluye iconos, efectos hover y gestión de estado activo.
+    Sidebar de navegación moderno con ítems clicables.
     """
     
-    navigation_changed = pyqtSignal(str)  # Emite el nombre de la vista seleccionada
+    # Señal que emite el ID del item seleccionado
+    item_selected = pyqtSignal(str)
     
-    def __init__(self, parent: Optional[QWidget] = None):
-        """
-        Inicializa la barra lateral de navegación.
-        
-        Args:
-            parent: Widget padre
-        """
+    def __init__(self, parent=None):
         super().__init__(parent)
-        self._buttons: dict[str, QPushButton] = {}
-        self._active_button: Optional[QPushButton] = None
-        self._setup_ui()
-    
-    def _setup_ui(self) -> None:
-        """Configura la interfaz de la sidebar."""
         self.setObjectName("ModernSidebar")
-        self.setFixedWidth(250)
+        self.setFixedWidth(200)
         self.setStyleSheet("""
             #ModernSidebar {
-                background-color: #2D2D30;
+                background-color: #252526;
                 border-right: 1px solid #3E3E42;
             }
         """)
         
-        layout = QVBoxLayout(self)
-        layout.setSpacing(5)
-        layout.setContentsMargins(10, 20, 10, 20)
+        # Layout principal
+        self._layout = QVBoxLayout(self)
+        self._layout.setContentsMargins(0, 20, 0, 20)
+        self._layout.setSpacing(5)
         
-        # Brand/Logo
-        brand_widget = self._create_brand()
-        layout.addWidget(brand_widget)
-        layout.addSpacing(20)
+        # Header/Logo
+        self._create_header()
         
-        # Los botones se añadirán dinámicamente con add_navigation_item
+        # Lista de items de navegación
+        self._items = {}  # {item_id: QPushButton}
+        self._current_item = None
         
-        layout.addStretch()
+        # Spacer al final
+        self._layout.addStretch()
     
-    def _create_brand(self) -> QWidget:
-        """
-        Crea el widget del logo/marca de la aplicación.
-        
-        Returns:
-            Widget con el logo y nombre de la aplicación
-        """
-        brand = QWidget()
-        brand_layout = QHBoxLayout(brand)
-        brand_layout.setContentsMargins(15, 0, 15, 30)
-        brand_layout.setSpacing(10)
-        
-        # Ícono (usando símbolo Unicode)
-        icon_label = QLabel("📊")
-        icon_label.setStyleSheet("""
-            font-size: 24px;
+    def _create_header(self):
+        """Crea el header del sidebar con logo/título."""
+        header = QLabel("LICITA MANAGE")
+        header.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        header.setStyleSheet("""
+            QLabel {
+                color: #7C4DFF;
+                font-size: 16px;
+                font-weight: bold;
+                padding: 20px 10px;
+                border-bottom: 1px solid #3E3E42;
+            }
         """)
-        
-        # Nombre de la aplicación
-        name_label = QLabel("LICITA MANAGER")
-        name_label.setStyleSheet("""
-            font-weight: 800;
-            font-size: 16px;
-            letter-spacing: 1px;
-            color: #FFFFFF;
-        """)
-        
-        brand_layout.addWidget(icon_label)
-        brand_layout.addWidget(name_label)
-        brand_layout.addStretch()
-        
-        return brand
+        self._layout.addWidget(header)
+        self._layout.addSpacing(20)
     
-    def add_navigation_item(
-        self, 
-        view_id: str, 
-        text: str, 
-        icon_text: str = "•",
-        is_active: bool = False
-    ) -> None:
+    def add_navigation_item(self, item_id: str, label: str, icon_text: str = ""):
         """
-        Añade un item de navegación a la sidebar.
+        Añade un item de navegación al sidebar.
         
         Args:
-            view_id: Identificador único de la vista
-            text: Texto a mostrar en el botón
-            icon_text: Carácter o emoji para usar como ícono
-            is_active: Si este item debe estar activo por defecto
+            item_id: ID único del item
+            label: Texto a mostrar
+            icon_text: Emoji o texto como ícono (opcional)
         """
-        button = QPushButton(f"{icon_text}  {text}")
-        button.setObjectName(f"nav_btn_{view_id}")
-        button.setCursor(Qt.CursorShape.PointingHandCursor)
-        button.setCheckable(True)
-        button.setFixedHeight(44)
+        from PyQt6.QtGui import QCursor  # ✅ Import local
         
-        # Estilo base del botón
-        button.setStyleSheet("""
+        btn = QPushButton(f"{icon_text}  {label}" if icon_text else label)
+        btn.setObjectName(f"nav_item_{item_id}")
+        
+        # ✅ CORRECCIÓN: Usar QCursor con Qt.CursorShape
+        btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        
+        btn.setFixedHeight(45)
+        btn.setStyleSheet("""
             QPushButton {
                 background-color: transparent;
                 color: #B0B0B0;
                 border: none;
-                border-radius: 8px;
-                padding: 12px 15px;
                 text-align: left;
+                padding-left: 20px;
                 font-size: 14px;
-                font-weight: 500;
+                font-weight: 600;
             }
             QPushButton:hover {
-                background-color: #3E3E42;
+                background-color: #2D2D30;
                 color: #FFFFFF;
             }
             QPushButton:checked {
-                background-color: rgba(124, 77, 255, 0.15);
+                background-color: #37373D;
                 color: #7C4DFF;
-                font-weight: 600;
+                border-left: 3px solid #7C4DFF;
+                padding-left: 17px;
             }
         """)
+        btn.setCheckable(True)
         
         # Conectar señal
-        button.clicked.connect(lambda: self._on_navigation_click(view_id, button))
+        btn.clicked.connect(lambda checked, iid=item_id: self._on_item_clicked(iid))
         
-        # Añadir al layout
-        layout = self.layout()
-        if layout:
-            # Insertar antes del stretch
-            layout.insertWidget(layout.count() - 1, button)
-        
-        self._buttons[view_id] = button
-        
-        if is_active:
-            button.setChecked(True)
-            self._active_button = button
+        self._items[item_id] = btn
+        self._layout.insertWidget(self._layout.count() - 1, btn)
     
-    def _on_navigation_click(self, view_id: str, button: QPushButton) -> None:
-        """
-        Maneja el clic en un botón de navegación.
+    def _on_item_clicked(self, item_id: str):
+        """Maneja el clic en un item de navegación."""
+        # Desmarcar todos los items
+        for btn in self._items.values():
+            btn.setChecked(False)
         
-        Args:
-            view_id: ID de la vista seleccionada
-            button: Botón que fue clickeado
-        """
-        # Desactivar botón anterior
-        if self._active_button and self._active_button != button:
-            self._active_button.setChecked(False)
-        
-        # Activar nuevo botón
-        button.setChecked(True)
-        self._active_button = button
+        # Marcar el item actual
+        if item_id in self._items:
+            self._items[item_id].setChecked(True)
+            self._current_item = item_id
         
         # Emitir señal
-        self.navigation_changed.emit(view_id)
+        self.item_selected.emit(item_id)
     
-    def set_active_view(self, view_id: str) -> None:
+    def select_item(self, item_id: str):
         """
-        Establece la vista activa programáticamente.
+        Selecciona un item programáticamente.
         
         Args:
-            view_id: ID de la vista a activar
+            item_id: ID del item a seleccionar
         """
-        if view_id in self._buttons:
-            button = self._buttons[view_id]
-            self._on_navigation_click(view_id, button)
+        if item_id in self._items:
+            self._on_item_clicked(item_id)
+    
+    def get_current_item(self) -> str:
+        """
+        Obtiene el ID del item actualmente seleccionado.
+        
+        Returns:
+            ID del item seleccionado o None
+        """
+        return self._current_item

@@ -56,22 +56,21 @@ except Exception:
 
 
 def _hex(c: QColor) -> str:
+    """Convierte QColor a string hexadecimal."""
     return c.name() if isinstance(c, QColor) else str(c)
 
 
 class ReportWindow(QMainWindow):
     """
-    Reporte de Licitación, afinado al tema Titanium Construct:
-    - Cards / KPIs blancos con bordes suaves.
-    - Tablas y árbol heredan el QSS global.
-    - Sin tema oscuro propio.
+    Reporte de Licitación, adaptado dinámicamente al tema activo.
+    Usa QPalette para obtener colores del tema en lugar de hardcoded.
     """
 
     def __init__(self, licitacion, parent: Optional[QWidget] = None, start_maximized: bool = False):
         super().__init__(parent)
         self.licitacion = licitacion
 
-        # Colores Titanium fijos (modo claro)
+        # ✅ CORRECCIÓN: Obtener colores del tema activo
         self.ui = self._resolve_theme_colors()
 
         self._setup_palette()
@@ -92,29 +91,44 @@ class ReportWindow(QMainWindow):
         # Restaurar splitters/tabs desde JSON
         self._restore_splitters_and_tabs_json()
 
-        # Conectar para guardar en caliente
+        # Conectar splitters para guardar en caliente
         self.split_mid.splitterMoved.connect(self._on_split_mid_moved)
-        self.tabs.currentChanged.connect(self._on_tabs_changed)
+        self.split_bottom.splitterMoved.connect(self._on_split_bottom_moved)
+        self.main_vsplitter.splitterMoved.connect(self._on_main_vsplitter_moved)
 
     # ---------- Tema / Colores ----------
     def _resolve_theme_colors(self) -> dict:
         """
-        Usa explícitamente la paleta Titanium Construct en lugar
-        de deducirla dinámicamente del QPalette.
+        ✅ CORRECCIÓN: Usa QPalette para obtener colores del tema activo
+        en lugar de hardcodear valores.
         """
-        # Paleta Titanium Construct (clara)
-        accent = "#155E75"        # Primary-600
-        text = "#111827"          # Neutral-900
-        text_sec = "#6B7280"      # Neutral-500
-        window = "#F3F4F6"        # Neutral-100
-        base = "#FFFFFF"          # Blanco tarjetas
-        alt = "#E5E7EB"           # Neutral-200
-        button = "#FFFFFF"        # Botones neutros
-        border = "#D1D5DB"        # Neutral-300
+        app = QGuiApplication.instance()
+        pal: QPalette = app.palette() if app else QPalette()
 
-        success = "#16A34A"       # Verde éxito
-        danger = "#DC2626"        # Rojo error
-        warning = "#F59E0B"       # Ámbar advertencia
+        def get_color(role: QPalette.ColorRole, fallback: str) -> str:
+            """Obtiene color de la paleta o usa fallback."""
+            try:
+                color = pal.color(role)
+                if color.isValid():
+                    return _hex(color)
+            except Exception:
+                pass
+            return fallback
+
+        # Obtener colores del tema activo
+        accent = get_color(QPalette.ColorRole.Highlight, "#7C4DFF")
+        text = get_color(QPalette.ColorRole.Text, "#E6E9EF")
+        text_sec = get_color(QPalette.ColorRole.PlaceholderText, "#B9C0CC")
+        window = get_color(QPalette.ColorRole.Window, "#1E1E1E")
+        base = get_color(QPalette.ColorRole.Base, "#252526")
+        alt = get_color(QPalette.ColorRole.AlternateBase, "#2D2D30")
+        button = get_color(QPalette.ColorRole.Button, "#3E3E42")
+        border = get_color(QPalette.ColorRole.Mid, "#3A4152")
+
+        # Colores semánticos (fijos pero adaptables)
+        success = "#00C853"
+        danger = "#FF5252"
+        warning = "#FFA726"
         info = accent
 
         return {
@@ -135,8 +149,8 @@ class ReportWindow(QMainWindow):
 
     def _setup_palette(self):
         """
-        QSS ligero para la ventana de reporte.
-        El grueso del estilo lo aplica el tema global Titanium.
+        ✅ CORRECCIÓN: QSS mínimo que respeta el tema global.
+        No sobrescribe colores, solo ajusta espaciados y bordes.
         """
         u = self.ui
         self.setStyleSheet(
@@ -146,11 +160,12 @@ class ReportWindow(QMainWindow):
             "QWidget {"
             "  font-family: 'Segoe UI', 'DejaVu Sans', Arial;"
             "  font-size: 10pt;"
-            f"  color: {u['text']};"
             "}"
             "QToolBar {"
             f"  background: {u['window']};"
             f"  border-bottom: 1px solid {u['border']};"
+            "  spacing: 5px;"
+            "  padding: 5px;"
             "}"
             "QStatusBar {"
             f"  background: {u['window']};"
@@ -159,44 +174,46 @@ class ReportWindow(QMainWindow):
             "QTabWidget::pane {"
             f"  border: 1px solid {u['border']};"
             f"  background: {u['base']};"
-            "  border-radius: 4px;"
+            "  border-radius: 6px;"
             "}"
             "QTabBar::tab {"
             f"  background: {u['alt']};"
             f"  color: {u['text_sec']};"
-            "  padding: 6px 12px;"
-            "  border-top-left-radius: 4px;"
-            "  border-top-right-radius: 4px;"
+            "  padding: 8px 16px;"
+            "  border-top-left-radius: 6px;"
+            "  border-top-right-radius: 6px;"
             "  margin-right: 2px;"
+            "  font-weight: 600;"
             "}"
             "QTabBar::tab:selected {"
             f"  background: {u['base']};"
             f"  color: {u['accent']};"
             "  font-weight: bold;"
-            f"  border-top: 3px solid {u['accent']};"
+            f"  border-bottom: 2px solid {u['accent']};"
             "}"
             "QTabBar::tab:hover:!selected {"
-            f"  background: {u['alt']};"
+            f"  background: {u['button']};"
             "}"
         )
 
     def _card_stylesheet(self) -> str:
-        """Estilo de tarjetas/groupbox al estilo Titanium Construct."""
+        """Estilo de tarjetas/groupbox adaptado al tema."""
         u = self.ui
         return (
             "QGroupBox, QFrame {"
             f"  background-color: {u['base']};"
             f"  border: 1px solid {u['border']};"
             "  border-radius: 8px;"
-            "  padding: 8px;"
+            "  padding: 12px;"
             "  margin-top: 0.5em;"
             "}"
             "QGroupBox::title {"
             "  subcontrol-origin: margin;"
             "  subcontrol-position: top left;"
-            "  padding: 0 6px;"
+            "  padding: 0 8px;"
             f"  color: {u['accent']};"
             "  font-weight: bold;"
+            "  font-size: 11pt;"
             "}"
         )
 
@@ -206,12 +223,20 @@ class ReportWindow(QMainWindow):
         tb.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.addToolBar(Qt.ToolBarArea.TopToolBarArea, tb)
 
-        self.act_pdf = QAction(self._icon(QStyle.StandardPixmap.SP_FileIcon, "report"), "Exportar a PDF", self)
+        self.act_pdf = QAction(
+            self._icon(QStyle.StandardPixmap.SP_FileIcon, "report"),
+            "Exportar a PDF",
+            self
+        )
         self.act_pdf.setShortcut(QKeySequence("Ctrl+P"))
         self.act_pdf.triggered.connect(lambda: self._export_report("pdf"))
         self.act_pdf.setEnabled(True)
 
-        self.act_xls = QAction(self._icon(QStyle.StandardPixmap.SP_DialogSaveButton, "docs"), "Exportar a Excel", self)
+        self.act_xls = QAction(
+            self._icon(QStyle.StandardPixmap.SP_DialogSaveButton, "docs"),
+            "Exportar a Excel",
+            self
+        )
         self.act_xls.setShortcut(QKeySequence("Ctrl+E"))
         self.act_xls.triggered.connect(lambda: self._export_report("excel"))
         self.act_xls.setEnabled(True)
@@ -225,12 +250,12 @@ class ReportWindow(QMainWindow):
         central = QWidget(self)
         self.setCentralWidget(central)
         root = QVBoxLayout(central)
-        root.setContentsMargins(10, 10, 10, 10)
-        root.setSpacing(10)
+        root.setContentsMargins(12, 12, 12, 12)
+        root.setSpacing(12)
 
-        # KPIs superiores
+        # ==================== KPIs SUPERIORES (FIJOS) ====================
         kpi_row = QHBoxLayout()
-        kpi_row.setSpacing(10)
+        kpi_row.setSpacing(12)
         root.addLayout(kpi_row)
 
         self.card_estado = self._kpi_card("Estado Actual", self.ui["accent"])
@@ -241,56 +266,81 @@ class ReportWindow(QMainWindow):
         for c in (self.card_estado, self.card_docs, self.card_dias, self.card_dif):
             kpi_row.addWidget(c)
 
-        # Splitter Cronograma | Financiero
-        self.split_mid = QSplitter(Qt.Orientation.Horizontal)
-        root.addWidget(self.split_mid, 2)
+        # ==================== SPLITTER VERTICAL PRINCIPAL ====================
+        # Divide la ventana en dos áreas verticales: Superior (Cronograma+Financiero) e Inferior (Tabs)
+        self.main_vsplitter = QSplitter(Qt.Orientation.Vertical)
+        root.addWidget(self.main_vsplitter, 1)
 
-        # Cronograma
+        # ==================== ÁREA SUPERIOR: CRONOGRAMA + FINANCIERO ====================
+        # Splitter horizontal para Cronograma | Financiero
+        self.split_mid = QSplitter(Qt.Orientation.Horizontal)
+        self.main_vsplitter.addWidget(self.split_mid)
+
+        # --- CRONOGRAMA ---
         self.box_crono = QGroupBox("Cronograma")
         self.box_crono.setStyleSheet(self._card_stylesheet())
         v_crono = QVBoxLayout(self.box_crono)
+        v_crono.setContentsMargins(8, 8, 8, 8)
+        
         self.tbl_crono = QTableWidget(0, 3)
         self.tbl_crono.setAlternatingRowColors(True)
         self.tbl_crono.setHorizontalHeaderLabels(["Hito", "Fecha Límite", "Estado"])
         self._tune_table(self.tbl_crono)
         self._tune_cronograma_header()
+        
         v_crono.addWidget(self.tbl_crono)
         self.split_mid.addWidget(self.box_crono)
 
-        # Financiero
+        # --- FINANCIERO ---
         self.box_fin = QGroupBox("Resumen Financiero (Solo Lotes Participados)")
         self.box_fin.setStyleSheet(self._card_stylesheet())
         v_fin = QVBoxLayout(self.box_fin)
+        v_fin.setContentsMargins(8, 8, 8, 8)
 
+        # Grid con datos financieros
         self.grid_fin = QGridLayout()
-        self.grid_fin.setVerticalSpacing(8)
+        self.grid_fin.setVerticalSpacing(6)
+        self.grid_fin.setHorizontalSpacing(12)
         v_fin.addLayout(self.grid_fin)
 
+        # Gráfico matplotlib
         if MATPLOTLIB_AVAILABLE:
             self.canvas_fin = self._new_canvas()
-            v_fin.addWidget(self._wrap_canvas("Comparativo Oferta vs Base (participados)", self.canvas_fin), 1)
+            canvas_wrapper = self._wrap_canvas("Comparativo Oferta vs Base (participados)", self.canvas_fin)
+            v_fin.addWidget(canvas_wrapper, 1)
+        
         self.split_mid.addWidget(self.box_fin)
 
-        self.split_mid.setStretchFactor(0, 3)
-        self.split_mid.setStretchFactor(1, 2)
+        # Proporción inicial del splitter horizontal (Cronograma:Financiero)
+        self.split_mid.setStretchFactor(0, 2)  # Cronograma
+        self.split_mid.setStretchFactor(1, 3)  # Financiero (más espacio para gráfico)
 
-        # Tabs inferiores
-        self.tabs = QTabWidget()
-        root.addWidget(self.tabs, 3)
+        # ==================== ÁREA INFERIOR: TABS (CHECKLIST + COMPETIDORES) ====================
+        # Splitter horizontal para los dos tabs
+        self.split_bottom = QSplitter(Qt.Orientation.Horizontal)
+        self.main_vsplitter.addWidget(self.split_bottom)
 
-        # Checklist
-        self.tab_check = QWidget()
-        v_chk = QVBoxLayout(self.tab_check)
+        # --- TAB 1: CHECKLIST ---
+        self.box_checklist = QGroupBox("Checklist de Documentos")
+        self.box_checklist.setStyleSheet(self._card_stylesheet())
+        v_chk = QVBoxLayout(self.box_checklist)
+        v_chk.setContentsMargins(8, 8, 8, 8)
+        
         self.tbl_docs = QTableWidget(0, 4)
         self.tbl_docs.setHorizontalHeaderLabels(["✓", "Documento", "Categoría", "Condición"])
         self._tune_table(self.tbl_docs)
         self.tbl_docs.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        self.tbl_docs.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        
         v_chk.addWidget(self.tbl_docs)
-        self.tabs.addTab(self.tab_check, "Checklist de Documentos")
+        self.split_bottom.addWidget(self.box_checklist)
 
-        # Competidores
-        self.tab_comp = QWidget()
-        v_comp = QVBoxLayout(self.tab_comp)
+        # --- TAB 2: COMPETIDORES ---
+        self.box_competidores = QGroupBox("Competidores y Resultados")
+        self.box_competidores.setStyleSheet(self._card_stylesheet())
+        v_comp = QVBoxLayout(self.box_competidores)
+        v_comp.setContentsMargins(8, 8, 8, 8)
+        
         self.tree_comp = QTreeWidget()
         self.tree_comp.setColumnCount(7)
         self.tree_comp.setHeaderLabels([
@@ -303,24 +353,61 @@ class ReportWindow(QMainWindow):
             "Ganador",
         ])
         self.tree_comp.setAlternatingRowColors(True)
+        
         v_comp.addWidget(self.tree_comp)
-        self.tabs.addTab(self.tab_comp, "Competidores y Resultados")
+        self.split_bottom.addWidget(self.box_competidores)
+
+        # Proporción inicial del splitter horizontal inferior (Checklist:Competidores)
+        self.split_bottom.setStretchFactor(0, 1)
+        self.split_bottom.setStretchFactor(1, 1)
+
+        # Proporción inicial del splitter vertical principal
+        # (Superior:Inferior) - Damos más espacio al área inferior (tabs)
+        self.main_vsplitter.setStretchFactor(0, 2)  # Área superior (Cronograma+Financiero)
+        self.main_vsplitter.setStretchFactor(1, 3)  # Área inferior (Checklist+Competidores)
 
     # ---------- Persistencia splitters/tabs ----------
     def _restore_splitters_and_tabs_json(self):
-        sizes = get_splitter_sizes("ReportWindow", "split_mid")
-        if sizes and all(isinstance(s, int) and s > 0 for s in sizes) and len(sizes) == len(self.split_mid.sizes()):
-            self.split_mid.setSizes(sizes)
+        """Restaura los tamaños de los splitters desde la configuración guardada."""
+        # Splitter horizontal medio (Cronograma | Financiero)
+        sizes_mid = get_splitter_sizes("ReportWindow", "split_mid")
+        if sizes_mid and all(isinstance(s, int) and s > 0 for s in sizes_mid) and len(sizes_mid) == 2:
+            self.split_mid.setSizes(sizes_mid)
         else:
-            self.split_mid.setSizes([700, 400])
+            self.split_mid.setSizes([400, 600])  # Default: 40% cronograma, 60% financiero
 
-        idx = get_tab_index("ReportWindow", "main", default=0)
-        if 0 <= idx < self.tabs.count():
-            self.tabs.setCurrentIndex(idx)
+        # Splitter horizontal inferior (Checklist | Competidores)
+        sizes_bottom = get_splitter_sizes("ReportWindow", "split_bottom")
+        if sizes_bottom and all(isinstance(s, int) and s > 0 for s in sizes_bottom) and len(sizes_bottom) == 2:
+            self.split_bottom.setSizes(sizes_bottom)
+        else:
+            self.split_bottom.setSizes([500, 500])  # Default: 50/50
+
+        # Splitter vertical principal (Superior | Inferior)
+        sizes_main = get_splitter_sizes("ReportWindow", "main_vsplitter")
+        if sizes_main and all(isinstance(s, int) and s > 0 for s in sizes_main) and len(sizes_main) == 2:
+            self.main_vsplitter.setSizes(sizes_main)
+        else:
+            self.main_vsplitter.setSizes([300, 500])  # Default: 37.5% superior, 62.5% inferior
 
     def _on_split_mid_moved(self, pos: int, index: int):
+        """Guarda el estado del splitter horizontal medio."""
         try:
             set_splitter_sizes("ReportWindow", "split_mid", self.split_mid.sizes())
+        except Exception:
+            pass
+
+    def _on_split_bottom_moved(self, pos: int, index: int):
+        """Guarda el estado del splitter horizontal inferior."""
+        try:
+            set_splitter_sizes("ReportWindow", "split_bottom", self.split_bottom.sizes())
+        except Exception:
+            pass
+
+    def _on_main_vsplitter_moved(self, pos: int, index: int):
+        """Guarda el estado del splitter vertical principal."""
+        try:
+            set_splitter_sizes("ReportWindow", "main_vsplitter", self.main_vsplitter.sizes())
         except Exception:
             pass
 
@@ -335,15 +422,16 @@ class ReportWindow(QMainWindow):
         card = QFrame()
         card.setStyleSheet(self._card_stylesheet())
         lay = QVBoxLayout(card)
-        lay.setSpacing(4)
+        lay.setSpacing(6)
+        lay.setContentsMargins(12, 12, 12, 12)
 
         t = QLabel(title)
-        t.setStyleSheet(f"color:{self.ui['text_sec']}; font-weight:600; font-size:11px;")
+        t.setStyleSheet(f"color:{self.ui['text_sec']}; font-weight:600; font-size:10pt;")
         lay.addWidget(t)
 
         row = QHBoxLayout()
         v = QLabel("--")
-        v.setStyleSheet(f"color:{accent}; font-size:22px; font-weight:700;")
+        v.setStyleSheet(f"color:{accent}; font-size:24pt; font-weight:700;")
         row.addWidget(v)
         row.addStretch(1)
         lay.addLayout(row)
@@ -356,15 +444,15 @@ class ReportWindow(QMainWindow):
             pb.setFormat("%p%")
             pb.setStyleSheet(
                 "QProgressBar {"
-                "  min-height: 12px;"
-                "  border-radius: 6px;"
+                "  min-height: 16px;"
+                "  border-radius: 8px;"
                 f"  background: {self.ui['alt']};"
                 f"  border: 1px solid {self.ui['border']};"
                 f"  color: {self.ui['text']};"
                 "}"
                 "QProgressBar::chunk {"
                 f"  background: {self.ui['accent']};"
-                "  border-radius: 6px;"
+                "  border-radius: 8px;"
                 "}"
             )
             lay.addWidget(pb)
@@ -406,7 +494,7 @@ class ReportWindow(QMainWindow):
         except Exception:
             pass
         color = self.ui["danger"] if dif > 0 else self.ui["success"]
-        self.card_dif._value_label.setStyleSheet(f"color:{color}; font-size:22px; font-weight:700;")
+        self.card_dif._value_label.setStyleSheet(f"color:{color}; font-size:24pt; font-weight:700;")
         self.card_dif._value_label.setText(f"{dif:+.2f}%")
 
     def _tune_cronograma_header(self):
@@ -440,7 +528,7 @@ class ReportWindow(QMainWindow):
                 it.setForeground(QColor(self.ui["danger"]))
             self.tbl_crono.setItem(r, 2, it)
         self.tbl_crono.resizeColumnsToContents()
-        self.tbl_crono.resizeRowsToContents()
+        #self.tbl_crono.resizeRowsToContents()
 
     # ------------------------ Financiero ------------------------
     def _populate_financiero(self):
@@ -471,21 +559,26 @@ class ReportWindow(QMainWindow):
         ]
         for r, (lbl, val, color) in enumerate(data):
             l = QLabel(lbl)
-            l.setStyleSheet(f"font-weight:600; color:{self.ui['text_sec']};")
+            # ✅ REDUCIR TAMAÑO DE FUENTE
+            l.setStyleSheet(f"font-weight:600; color:{self.ui['text_sec']}; font-size:9pt;")
             v = QLabel(val)
             if color:
-                v.setStyleSheet(f"color:{color}; font-weight:700;")
+                # ✅ REDUCIR TAMAÑO DE FUENTE
+                v.setStyleSheet(f"color:{color}; font-weight:700; font-size:10pt;")
             v.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             self.grid_fin.addWidget(l, r, 0)
             self.grid_fin.addWidget(v, r, 1)
+
+        # ... resto del código del gráfico ...
 
         if MATPLOTLIB_AVAILABLE:
             ax = self.canvas_fin.figure.subplots()
             ax.clear()
 
+            # ✅ CORRECCIÓN: Usar colores del tema en matplotlib
             ax.set_facecolor(self.ui["base"])
-            ax.tick_params(axis="x", colors=self.ui["text_sec"])
-            ax.tick_params(axis="y", colors=self.ui["text_sec"])
+            ax.tick_params(axis="x", colors=self.ui["text"])
+            ax.tick_params(axis="y", colors=self.ui["text"])
             for spine in ("top", "right"):
                 ax.spines[spine].set_visible(False)
             ax.spines["left"].set_color(self.ui["border"])
@@ -540,7 +633,7 @@ class ReportWindow(QMainWindow):
                     it = self.tbl_docs.item(row, c)
                     if it:
                         it.setForeground(QColor(self.ui["danger"]))
-        self.tbl_docs.resizeRowsToContents()
+        #self.tbl_docs.resizeRowsToContents()
 
     # ------------------------ Competidores ------------------------
     def _populate_competidores(self):
@@ -697,9 +790,12 @@ class ReportWindow(QMainWindow):
             QMessageBox.information(self, "Exportar", f"Reporte guardado en:\n{path}")
         except Exception as e:
             QMessageBox.critical(self, "Exportar", f"No se pudo exportar el reporte:\n{e}")
+            import traceback
+            traceback.print_exc()
 
     # ------------------------ Utilidades ------------------------
     def _tune_table(self, t: QTableWidget):
+        """Configura tabla con estilos mínimos que respetan el tema."""
         t.setAlternatingRowColors(True)
         t.verticalHeader().setVisible(False)
         t.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
@@ -708,14 +804,19 @@ class ReportWindow(QMainWindow):
         hh = t.horizontalHeader()
         hh.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
-        # Dejar que el QSS global Titanium gobierne; solo afinamos la rejilla
+        # Solo definir gridline-color
         t.setStyleSheet(
             "QTableWidget {"
             f"  gridline-color: {self.ui['border']};"
             "}"
         )
+        
+        # ✅ AÑADIR: Reducir altura de filas
+        t.verticalHeader().setDefaultSectionSize(28)  # Altura de fila reducida
+        t.setMinimumHeight(120)  # Altura mínima de la tabla
 
     def _new_canvas(self):
+        """Crea canvas de matplotlib con fondo del tema."""
         fig = Figure(figsize=(5.2, 2.8), dpi=100, facecolor=self.ui["base"])
         return FigureCanvas(fig)
 
@@ -733,25 +834,13 @@ class ReportWindow(QMainWindow):
             return "RD$ 0.00"
 
     def closeEvent(self, event):
+        """Guarda todos los estados de splitters al cerrar."""
         try:
             set_splitter_sizes("ReportWindow", "split_mid", self.split_mid.sizes())
-            set_tab_index("ReportWindow", "main", int(self.tabs.currentIndex()))
+            set_splitter_sizes("ReportWindow", "split_bottom", self.split_bottom.sizes())
+            set_splitter_sizes("ReportWindow", "main_vsplitter", self.main_vsplitter.sizes())
         finally:
             super().closeEvent(event)
-
-
-    # ----------------- Normalización de nombres -----------------
-    def _norm(self, s: str) -> str:
-        """
-        Normaliza nombres de empresas/participantes para compararlos de forma robusta,
-        similar a _populate_competidores del ReportWindow.
-        """
-        s = (s or "").strip()
-        s = s.replace("➡️", "").replace("(Nuestra Oferta)", "")
-        while "  " in s:
-            s = s.replace("  ", " ")
-        return s.upper()
-
 
     def _icon(self, std: QStyle.StandardPixmap, semantic_name: str = "") -> QIcon:
         """

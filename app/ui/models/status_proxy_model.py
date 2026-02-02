@@ -67,91 +67,40 @@ class StatusFilterProxyModel(QSortFilterProxyModel):
 
     # ---------- Filtro principal ----------
     def filterAcceptsRow(self, source_row, source_parent):
+        """
+        Filtra filas según si la licitación está finalizada o activa.
+        
+        Returns:
+            True si la fila debe mostrarse, False en caso contrario.
+        """
         model = self.sourceModel()
         if model is None:
             return True
-
+        
         index = model.index(source_row, 0, source_parent)
         lic = model.data(index, role=ROLE_RECORD_ROLE)
+        
         if lic is None:
             return False
-
-        # Filtrado por activas/finalizadas (si hay engine)
+        
+        # ✅ Filtrado por activas/finalizadas (si hay engine)
         if self.status_engine is not None:
             try:
+                es_finalizada = self.status_engine.is_finalizada(lic)
+                
+                # Si queremos finalizadas, solo mostrar finalizadas
                 if self.show_finalizadas:
-                    if not self.status_engine.is_finalizada(lic):
+                    if not es_finalizada:
                         return False
+                # Si queremos activas, solo mostrar activas
                 else:
-                    if self.status_engine.is_finalizada(lic):
+                    if es_finalizada:
                         return False
-            except Exception:
-                # si el engine falla, no bloquear el registro
+            
+            except Exception as e:
+                # Si el engine falla, mostrar la fila por defecto
+                print(f"[WARNING] Error en status_engine.is_finalizada(): {e}")
                 pass
-
-        # Filtrado por estado (acepta str o colección)
-        filtro_estado = self._filter_estado
-        if filtro_estado and self._to_text(filtro_estado).lower() != "todos":
-            estado_txt = self._to_lower(getattr(lic, "estado", None))
-            if isinstance(filtro_estado, (set, list, tuple)):
-                opciones = [s for s in self._iter_lower(filtro_estado) if s]
-                if opciones and not any(opt in estado_txt for opt in opciones):
-                    return False
-            else:
-                needle = self._to_lower(filtro_estado)
-                if needle and needle not in estado_txt:
-                    return False
-
-        # Filtrado por empresa (acepta str o colección)
-        filtro_empresa = self._filter_empresa
-        if filtro_empresa and self._to_text(filtro_empresa).lower() != "todas":
-            empresas = (
-                getattr(lic, "empresas_nuestras", None)
-                or getattr(lic, "empresas", None)
-                or []
-            )
-            nombres = []
-            for e in empresas:
-                n = getattr(e, "nombre", None) or (e if isinstance(e, str) else None)
-                if n:
-                    nombres.append(self._to_lower(n))
-
-            if isinstance(filtro_empresa, (set, list, tuple)):
-                needles = [s for s in self._iter_lower(filtro_empresa) if s]
-                # Pasa si al menos uno de los filtros aparece completo en la lista
-                if needles and not any(nd in nombres for nd in needles):
-                    return False
-            else:
-                needle = self._to_lower(filtro_empresa)
-                if needle and needle not in nombres:
-                    return False
-
-        # Filtrado por lote exacto
-        if self._filter_lote:
-            lotes = getattr(lic, "lotes", None) or []
-            lote_needle = self._to_lower(self._filter_lote)
-            if not any(
-                self._to_lower(getattr(l, "numero", None) if not isinstance(l, str) else l) == lote_needle
-                for l in lotes
-            ):
-                return False
-
-        # Filtrado por lote contiene (más flexible)
-        if self._filter_lote_contains:
-            lotes = getattr(lic, "lotes", None) or []
-            sub = self._to_lower(self._filter_lote_contains)
-            if not any(
-                sub in self._to_lower(getattr(l, "numero", None) if not isinstance(l, str) else l)
-                for l in lotes
-            ):
-                return False
-
-        # Filtrado por texto de búsqueda (nombre o código)
-        if self._search_text:
-            texto = self._to_lower(self._search_text)
-            nombre = self._to_lower(getattr(lic, "nombre_proceso", "") or getattr(lic, "nombre", ""))
-            codigo = self._to_lower(getattr(lic, "numero_proceso", "") or getattr(lic, "numero", ""))
-            if texto not in nombre and texto not in codigo:
-                return False
-
+        
+        # ✅ CRÍTICO: Si llegamos aquí, la fila pasa el filtro
         return True
