@@ -25,6 +25,12 @@ from app.ui.delegates.simple_progress_bar_delegate import SimpleProgressBarDeleg
 from app.ui.delegates.progress_bar_delegate import ProgressBarDelegate
 from app.ui.delegates.heatmap_delegate import HeatmapDelegate
 
+# Imports de iconos SVG
+from app.ui.utils.icon_utils import (
+    add_icon, edit_icon, refresh_icon, eye_icon, 
+    chart_icon, list_icon
+)
+
 # Proxy de filtros múltiples
 try:
     from app.ui.models.multi_filter_proxy_model import MultiFilterProxyModel
@@ -181,7 +187,8 @@ class LicitacionesListView(QWidget):
         toolbar = QHBoxLayout()
         toolbar.setSpacing(10)
         
-        self.btn_nueva = QPushButton("➕  Nueva Licitación")
+        self.btn_nueva = QPushButton("Nueva Licitación")
+        self.btn_nueva.setIcon(add_icon())
         self.btn_nueva.setStyleSheet("""
             QPushButton {
                 background-color: #7C4DFF;
@@ -197,7 +204,8 @@ class LicitacionesListView(QWidget):
         """)
         self.btn_nueva.setFixedHeight(40)
         
-        self.btn_editar = QPushButton("✏️  Editar Seleccionada")
+        self.btn_editar = QPushButton("Editar Seleccionada")
+        self.btn_editar.setIcon(edit_icon())
         self.btn_editar.setStyleSheet("""
             QPushButton {
                 background-color: transparent;
@@ -215,7 +223,8 @@ class LicitacionesListView(QWidget):
         self.btn_editar.setFixedHeight(40)
         
         # ✅ NUEVO: Botón de refresh
-        self.btn_refresh = QPushButton("🔄  Actualizar Datos")
+        self.btn_refresh = QPushButton("Actualizar Datos")
+        self.btn_refresh.setIcon(refresh_icon())
         self.btn_refresh.setStyleSheet("""
             QPushButton {
                 background-color: transparent;
@@ -1352,23 +1361,23 @@ class LicitacionesListView(QWidget):
         """)
         
         # Acciones
-        action_editar = QAction("✏️  Editar", self)
+        action_editar = QAction(edit_icon(), "Editar", self)
         action_editar.triggered.connect(self._on_editar_licitacion)
         menu.addAction(action_editar)
         
-        action_ver_detalles = QAction("👁️  Ver Detalles", self)
+        action_ver_detalles = QAction(eye_icon(), "Ver Detalles", self)
         action_ver_detalles.triggered.connect(lambda: self._on_double_click(selection[0]))
         menu.addAction(action_ver_detalles)
         
         menu.addSeparator()
         
-        action_reporte = QAction("📊  Generar Reporte", self)
+        action_reporte = QAction(chart_icon(), "Generar Reporte", self)
         action_reporte.triggered.connect(self._on_generar_reporte_seleccionada)
         menu.addAction(action_reporte)
         
         menu.addSeparator()
         
-        action_copiar_codigo = QAction("📋  Copiar Código", self)
+        action_copiar_codigo = QAction(list_icon(), "Copiar Código", self)
         action_copiar_codigo.triggered.connect(lambda: self._copiar_codigo_seleccionada(sender))
         menu.addAction(action_copiar_codigo)
         
@@ -1425,7 +1434,7 @@ class LicitacionesListView(QWidget):
         
         # Deshabilitar botón temporalmente
         self.btn_refresh.setEnabled(False)
-        self.btn_refresh.setText("🔄  Actualizando...")
+        self.btn_refresh.setText("Actualizando...")
         
         # Crear diálogo de progreso
         progress = QProgressDialog(
@@ -1492,7 +1501,7 @@ class LicitacionesListView(QWidget):
         finally:
             # Rehabilitar botón
             self.btn_refresh.setEnabled(True)
-            self.btn_refresh.setText("🔄  Actualizar Datos")
+            self.btn_refresh.setText("Actualizar Datos")
             
     def refresh(self) -> None:
         """Refresca la vista actualizando filtros y estadísticas."""
