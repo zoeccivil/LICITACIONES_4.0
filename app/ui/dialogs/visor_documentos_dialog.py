@@ -108,9 +108,14 @@ class VisorDocumentosDialog(QDialog):
     # ---------- Datos ----------
     def _prepare_data(self):
         """Sorts documents and groups them by category."""
+        # ✅ CORRECCIÓN: Manejar None en orden_pliego
         docs = sorted(
             self.licitacion.documentos_solicitados,
-            key=lambda d: (getattr(d, 'orden_pliego', 99999), d.codigo or "", d.nombre or "")
+            key=lambda d: (
+                getattr(d, 'orden_pliego', None) if getattr(d, 'orden_pliego', None) is not None else 99999,
+                d.codigo or "",
+                d.nombre or ""
+            )
         )
         self._all_docs_sorted = docs
 
@@ -204,8 +209,11 @@ class VisorDocumentosDialog(QDialog):
             revisado_icon = "👁️" if getattr(doc, 'revisado', False) else ""
             adjunto_icon = "📎" if getattr(doc, 'ruta_archivo', '') else ""
             condicion = getattr(doc, 'subsanable', 'N/D') or 'N/D'
+            
+            # ✅ CORRECCIÓN: Manejar None en orden_pliego
             orden = getattr(doc, 'orden_pliego', None)
             orden_display = str(orden) if orden is not None else ""
+            sort_order_data = orden if orden is not None else 999999
 
             item_estado = QTableWidgetItem(estado_icon)
             item_codigo = QTableWidgetItem(doc.codigo or "")
@@ -215,7 +223,6 @@ class VisorDocumentosDialog(QDialog):
             item_adjunto = QTableWidgetItem(adjunto_icon)
             item_orden = QTableWidgetItem()
 
-            sort_order_data = orden if orden is not None else 999999
             item_orden.setData(Qt.ItemDataRole.DisplayRole, orden_display)
             item_orden.setData(Qt.ItemDataRole.UserRole + 1, sort_order_data)
 

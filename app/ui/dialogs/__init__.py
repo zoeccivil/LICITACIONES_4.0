@@ -4,4 +4,6 @@ __all__ = [
     "gestionar_lote_dialog",
     "gestionar_documento_dialog",
     "gestionar_oferente_dialog",
+    'SeleccionarLicitacionDialog',
+    'DialogoReportes',
 ]

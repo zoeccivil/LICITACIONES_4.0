@@ -147,25 +147,71 @@ class DashboardWidget(QWidget):
     # ----------------- Tema / Colores -----------------
     def _resolve_theme_colors(self):
         """
-        Fija explícitamente la paleta Titanium Construct para el dashboard
-        y construye el QSS base de los QGroupBox.
+        Aplica paleta Titanium Construct en modo OSCURO para consistencia
+        con el resto de la aplicación moderna.
         """
+        # ✅ Colores adaptados al tema oscuro moderno
+        self.COLOR_BACKGROUND = "#1E1E1E"       # Fondo general oscuro
+        self.COLOR_TEXT_PRIMARY = "#E6E9EF"     # Texto claro principal
+        self.COLOR_TEXT_SECONDARY = "#B9C0CC"   # Texto claro secundario
+
+        self.COLOR_PARTICIPACIONES = "#7C4DFF"  # Morado accent (igual que app moderna)
+        self.COLOR_GANADAS = "#00C853"          # Verde éxito
+        self.COLOR_PERDIDAS = "#FF5252"         # Rojo error
+        self.COLOR_EN_PROCESO = "#FFA726"       # Ámbar/naranja
+
+        self.COLOR_BORDER = "#3E3E42"           # Bordes sutiles
+        self.COLOR_ALT = "#2D2D30"              # Fondos alternos
+        self.COLOR_BASE = "#252526"             # Fondo de cards/tablas
+
+        # ✅ QSS actualizado para modo oscuro
         self._BOX_QSS = (
             "QGroupBox {"
             f"  background-color: {self.COLOR_BASE};"
             f"  border: 1px solid {self.COLOR_BORDER};"
             "  border-radius: 8px;"
             "  margin-top: 1.2em;"
+            "  padding: 15px;"
             "}"
             "QGroupBox::title {"
             "  subcontrol-origin: margin;"
             "  subcontrol-position: top left;"
-            "  padding: 0 6px;"
+            "  padding: 0 8px;"
             f"  color: {self.COLOR_PARTICIPACIONES};"
             "  font-weight: bold;"
+            "  font-size: 11pt;"
             "}"
         )
-
+    def _get_input_style(self) -> str:
+        """Devuelve QSS para inputs consistente con el tema oscuro."""
+        return f"""
+            QLineEdit, QComboBox, QDateEdit {{
+                background-color: {self.COLOR_ALT};
+                border: 2px solid {self.COLOR_BORDER};
+                border-radius: 6px;
+                padding: 6px 10px;
+                color: {self.COLOR_TEXT_PRIMARY};
+                font-size: 10pt;
+            }}
+            QLineEdit:focus, QComboBox:focus, QDateEdit:focus {{
+                border-color: {self.COLOR_PARTICIPACIONES};
+            }}
+            QComboBox::drop-down {{
+                border: none;
+                width: 20px;
+            }}
+            QComboBox::down-arrow {{
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid {self.COLOR_TEXT_PRIMARY};
+                margin-right: 5px;
+            }}
+            QDateEdit::drop-down {{
+                border: none;
+                width: 20px;
+            }}
+        """
     def _tight_layout_safe(self, fig=None):
         """
         Ajusta el layout de manera segura para evitar excepciones de Matplotlib.
@@ -184,46 +230,49 @@ class DashboardWidget(QWidget):
             pass
 
     def _style_tabs(self, tabs: QTabWidget):
-        tabs.setStyleSheet(
-            "QTabWidget::pane {"
-            f"  border: 1px solid {self.COLOR_BORDER};"
-            f"  background: {self.COLOR_BASE};"
-            "  border-radius: 4px;"
-            "}"
-            "QTabBar::tab {"
-            f"  background: {self.COLOR_ALT};"
-            f"  color: {self.COLOR_TEXT_SECONDARY};"
-            "  padding: 6px 12px;"
-            "  border-top-left-radius: 4px;"
-            "  border-top-right-radius: 4px;"
-            "  margin-right: 2px;"
-            "}"
-            "QTabBar::tab:selected {"
-            f"  background: {self.COLOR_BASE};"
-            f"  color: {self.COLOR_PARTICIPACIONES};"
-            "  font-weight: bold;"
-            f"  border-top: 3px solid {self.COLOR_PARTICIPACIONES};"
-            "}"
-            "QTabBar::tab:hover:!selected {"
-            f"  background: {self.COLOR_ALT};"
-            "}"
-        )
+        """Aplica estilo moderno oscuro a los tabs."""
+        tabs.setStyleSheet(f"""
+            QTabWidget::pane {{
+                border: 1px solid {self.COLOR_BORDER};
+                background: {self.COLOR_BASE};
+                border-radius: 6px;
+            }}
+            QTabBar::tab {{
+                background: {self.COLOR_ALT};
+                color: {self.COLOR_TEXT_SECONDARY};
+                padding: 10px 20px;
+                border-top-left-radius: 6px;
+                border-top-right-radius: 6px;
+                margin-right: 2px;
+                font-weight: 600;
+            }}
+            QTabBar::tab:selected {{
+                background: {self.COLOR_BASE};
+                color: {self.COLOR_PARTICIPACIONES};
+                font-weight: bold;
+                border-top: 3px solid {self.COLOR_PARTICIPACIONES};
+            }}
+            QTabBar::tab:hover:!selected {{
+                background: {self.COLOR_BORDER};
+            }}
+        """)
 
     # ----------------- Matplotlib -----------------
     def _init_mpl_style(self):
-        """Configura estilos globales para Matplotlib (sin usar pyplot)."""
+        """Configura estilos globales para Matplotlib en modo oscuro."""
         if MATPLOTLIB_AVAILABLE and mpl is not None:
             try:
                 mpl.rcParams["font.size"] = 9
                 mpl.rcParams["axes.titlepad"] = 12
-                mpl.rcParams["axes.labelcolor"] = self.COLOR_TEXT_SECONDARY
+                mpl.rcParams["axes.labelcolor"] = self.COLOR_TEXT_PRIMARY  # ✅ Cambiado
                 mpl.rcParams["axes.titleweight"] = "bold"
                 mpl.rcParams["axes.titlesize"] = "11"
-                mpl.rcParams["xtick.color"] = self.COLOR_TEXT_SECONDARY
-                mpl.rcParams["ytick.color"] = self.COLOR_TEXT_SECONDARY
+                mpl.rcParams["xtick.color"] = self.COLOR_TEXT_PRIMARY       # ✅ Cambiado
+                mpl.rcParams["ytick.color"] = self.COLOR_TEXT_PRIMARY       # ✅ Cambiado
                 mpl.rcParams["figure.facecolor"] = self.COLOR_BASE
                 mpl.rcParams["axes.facecolor"] = self.COLOR_BASE
                 mpl.rcParams["savefig.facecolor"] = self.COLOR_BASE
+                mpl.rcParams["text.color"] = self.COLOR_TEXT_PRIMARY        # ✅ Añadido
                 mpl.rcParams["font.sans-serif"] = ["Segoe UI", "Arial", "DejaVu Sans", "sans-serif"]
                 mpl.rcParams["font.family"] = "sans-serif"
             except Exception as e:
@@ -231,51 +280,163 @@ class DashboardWidget(QWidget):
 
     # ----------------- Barra de filtros -----------------
     def _build_filters_bar(self, parent_layout: QVBoxLayout):
+        """Construye la barra de filtros con tema oscuro moderno."""
         box = QGroupBox("Filtros del Dashboard")
         box.setStyleSheet(self._BOX_QSS)
         h = QHBoxLayout(box)
         h.setSpacing(10)
 
-        h.addWidget(QLabel("Institución:"))
+        # ==================== LABELS ====================
+        # Estilo para labels
+        label_style = f"""
+            QLabel {{
+                color: {self.COLOR_TEXT_PRIMARY};
+                font-size: 10pt;
+                font-weight: 600;
+            }}
+        """
+
+        lbl_inst = QLabel("Institución:")
+        lbl_inst.setStyleSheet(label_style)
+        h.addWidget(lbl_inst)
+
+        # ==================== COMBO INSTITUCIÓN ====================
         self.cmb_inst = QComboBox()
         self.cmb_inst.setMinimumWidth(220)
         self.cmb_inst.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         h.addWidget(self.cmb_inst, 1)
 
-        h.addWidget(QLabel("Código Proceso:"))
+        lbl_codigo = QLabel("Código Proceso:")
+        lbl_codigo.setStyleSheet(label_style)
+        h.addWidget(lbl_codigo)
+
+        # ==================== INPUT CÓDIGO ====================
         self.txt_codigo = QLineEdit()
         self.txt_codigo.setPlaceholderText("ITLA-CCC-CP-2025-0001…")
         self.txt_codigo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         h.addWidget(self.txt_codigo, 1)
 
-        h.addWidget(QLabel("Desde:"))
+        lbl_desde = QLabel("Desde:")
+        lbl_desde.setStyleSheet(label_style)
+        h.addWidget(lbl_desde)
+
+        # ==================== DATE DESDE ====================
         self.dt_desde = QDateEdit()
         self.dt_desde.setDisplayFormat("yyyy-MM-dd")
         self.dt_desde.setCalendarPopup(True)
         self.dt_desde.setDate(QDate.currentDate())
         h.addWidget(self.dt_desde)
 
-        h.addWidget(QLabel("Hasta:"))
+        lbl_hasta = QLabel("Hasta:")
+        lbl_hasta.setStyleSheet(label_style)
+        h.addWidget(lbl_hasta)
+
+        # ==================== DATE HASTA ====================
         self.dt_hasta = QDateEdit()
         self.dt_hasta.setDisplayFormat("yyyy-MM-dd")
         self.dt_hasta.setCalendarPopup(True)
         self.dt_hasta.setDate(QDate.currentDate())
         h.addWidget(self.dt_hasta)
 
-        # Botón Aplicar: acción principal → primary
+        # ==================== APLICAR ESTILOS A INPUTS ====================
+        input_style = f"""
+            QLineEdit, QComboBox, QDateEdit {{
+                background-color: {self.COLOR_ALT};
+                border: 2px solid {self.COLOR_BORDER};
+                border-radius: 6px;
+                padding: 6px 10px;
+                color: {self.COLOR_TEXT_PRIMARY};
+                font-size: 10pt;
+            }}
+            QLineEdit:focus, QComboBox:focus, QDateEdit:focus {{
+                border-color: {self.COLOR_PARTICIPACIONES};
+            }}
+            QLineEdit::placeholder {{
+                color: {self.COLOR_TEXT_SECONDARY};
+            }}
+            QComboBox::drop-down, QDateEdit::drop-down {{
+                border: none;
+                width: 20px;
+            }}
+            QComboBox::down-arrow, QDateEdit::down-arrow {{
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid {self.COLOR_TEXT_PRIMARY};
+                margin-right: 5px;
+            }}
+            QComboBox QAbstractItemView {{
+                background-color: {self.COLOR_BASE};
+                color: {self.COLOR_TEXT_PRIMARY};
+                selection-background-color: {self.COLOR_PARTICIPACIONES};
+                selection-color: white;
+                border: 1px solid {self.COLOR_BORDER};
+            }}
+        """
+
+        self.cmb_inst.setStyleSheet(input_style)
+        self.txt_codigo.setStyleSheet(input_style)
+        self.dt_desde.setStyleSheet(input_style)
+        self.dt_hasta.setStyleSheet(input_style)
+
+        # ==================== BOTONES ====================
+        # Estilo para botón primario (Aplicar)
+        btn_primary_style = f"""
+            QPushButton {{
+                background-color: {self.COLOR_PARTICIPACIONES};
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 16px;
+                font-size: 10pt;
+                font-weight: bold;
+                min-width: 80px;
+            }}
+            QPushButton:hover {{
+                background-color: #6C3FEF;
+            }}
+            QPushButton:pressed {{
+                background-color: #5C2FDF;
+            }}
+        """
+
+        # Estilo para botones neutrales (Limpiar, Refrescar)
+        btn_neutral_style = f"""
+            QPushButton {{
+                background-color: {self.COLOR_ALT};
+                color: {self.COLOR_TEXT_PRIMARY};
+                border: 1px solid {self.COLOR_BORDER};
+                border-radius: 6px;
+                padding: 8px 16px;
+                font-size: 10pt;
+                font-weight: 600;
+                min-width: 80px;
+            }}
+            QPushButton:hover {{
+                background-color: {self.COLOR_BORDER};
+                border-color: {self.COLOR_PARTICIPACIONES};
+            }}
+            QPushButton:pressed {{
+                background-color: {self.COLOR_BASE};
+            }}
+        """
+
+        # Botón Aplicar
         self.btn_aplicar = QPushButton("Aplicar")
         self.btn_aplicar.clicked.connect(self._apply_filters_and_render)
-        self.btn_aplicar.setProperty("class", "primary")
+        self.btn_aplicar.setStyleSheet(btn_primary_style)
         h.addWidget(self.btn_aplicar)
 
-        # Botón Limpiar: neutro
+        # Botón Limpiar
         self.btn_limpiar = QPushButton("Limpiar")
         self.btn_limpiar.clicked.connect(self._clear_filters)
+        self.btn_limpiar.setStyleSheet(btn_neutral_style)
         h.addWidget(self.btn_limpiar)
 
-        # Botón Refrescar Datos: neutro
+        # Botón Refrescar Datos
         self.btn_refrescar = QPushButton("Refrescar Datos")
         self.btn_refrescar.clicked.connect(self.reload_data)
+        self.btn_refrescar.setStyleSheet(btn_neutral_style)
         h.addWidget(self.btn_refrescar)
 
         parent_layout.addWidget(box)
@@ -468,6 +629,7 @@ class DashboardWidget(QWidget):
 
     # ----------------- Helpers de estilo -----------------
     def _style_table(self, t: QTableWidget):
+        """Aplica estilo moderno oscuro a tablas."""
         t.verticalHeader().setVisible(False)
         t.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         t.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -475,12 +637,34 @@ class DashboardWidget(QWidget):
         hh = t.horizontalHeader()
         hh.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
-        # Dejar que el QSS global Titanium gobierne; solo afinamos gridline
-        t.setStyleSheet(
-            "QTableWidget {"
-            f"  gridline-color: {self.COLOR_BORDER};"
-            "}"
-        )
+        t.setStyleSheet(f"""
+            QTableWidget {{
+                gridline-color: {self.COLOR_BORDER};
+                background-color: {self.COLOR_BASE};
+                alternate-background-color: {self.COLOR_ALT};
+                selection-background-color: {self.COLOR_PARTICIPACIONES};
+                selection-color: white;
+                border: none;
+                color: {self.COLOR_TEXT_PRIMARY};
+            }}
+            QHeaderView::section {{
+                background-color: {self.COLOR_ALT};
+                color: {self.COLOR_TEXT_PRIMARY};
+                padding: 10px;
+                border: none;
+                border-bottom: 2px solid {self.COLOR_PARTICIPACIONES};
+                font-weight: bold;
+                font-size: 10pt;
+            }}
+            QTableWidget::item {{
+                padding: 8px;
+                color: {self.COLOR_TEXT_PRIMARY};
+            }}
+            QTableWidget::item:selected {{
+                background-color: {self.COLOR_PARTICIPACIONES};
+                color: white;
+            }}
+        """)
 
     def _style_tree(self, tree: QTreeWidget):
         tree.setAlternatingRowColors(True)
@@ -504,14 +688,15 @@ class DashboardWidget(QWidget):
         return box
 
     def _clean_ax(self, ax):
-        """Limpia los ejes para un look moderno, acorde al tema."""
+        """Limpia los ejes para un look moderno oscuro."""
         ax.set_facecolor(self.COLOR_BASE)
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
         ax.spines["left"].set_color(self.COLOR_BORDER)
         ax.spines["bottom"].set_color(self.COLOR_BORDER)
-        ax.grid(axis="x", color="#E5E7EB", linestyle="--")
+        ax.grid(axis="both", color=self.COLOR_BORDER, linestyle="--", alpha=0.3)  # ✅ Mejorado
         ax.set_axisbelow(True)
+        ax.tick_params(colors=self.COLOR_TEXT_PRIMARY)  # ✅ Añadido
 
     # ----------------- Persistencia JSON -----------------
     def _restore_layout_state_json(self):
