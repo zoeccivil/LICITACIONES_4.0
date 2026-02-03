@@ -43,7 +43,7 @@ class DialogoSeleccionarInstitucion(QDialog):
 
         # --- Filtro ---
         filter_layout = QHBoxLayout()
-        filter_layout.addWidget(QLabel("🔍 Buscar:"))
+        filter_layout.addWidget(QLabel("Buscar:"))
         self.search_edit = QLineEdit()
         self.search_edit.setPlaceholderText("Filtrar por nombre o RNC...")
         self.search_edit.textChanged.connect(self._aplicar_filtro)

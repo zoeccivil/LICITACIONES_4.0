@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import (
 )
 
 from app.core.template_engine import TemplateEngine
+from app.ui.utils.icon_utils import file_icon
 
 
 class DialogoPlantillas(QDialog):
@@ -48,7 +49,8 @@ class DialogoPlantillas(QDialog):
         btn_cargar.clicked.connect(self._cargar_plantilla)
         left_layout.addWidget(btn_cargar)
         
-        btn_nueva_simple = QPushButton("📄 Nueva Plantilla Simple")
+        btn_nueva_simple = QPushButton("Nueva Plantilla Simple")
+        btn_nueva_simple.setIcon(file_icon())
         btn_nueva_simple.clicked.connect(self._nueva_plantilla_simple)
         left_layout.addWidget(btn_nueva_simple)
         

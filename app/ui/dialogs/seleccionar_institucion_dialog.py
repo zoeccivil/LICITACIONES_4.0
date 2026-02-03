@@ -10,6 +10,7 @@ from PyQt6.QtCore import Qt
 
 from .gestionar_entidad_dialog import DialogoGestionarEntidad
 from .dialogo_gestionar_instituciones import DialogoGestionarInstituciones
+from app.ui.utils.icon_utils import add_icon
 
 class SeleccionarInstitucionDialog(QDialog):
     """
@@ -45,7 +46,8 @@ class SeleccionarInstitucionDialog(QDialog):
         main.addWidget(self.table, 1)
 
         btns_h = QHBoxLayout()
-        self.btn_add = QPushButton("➕ Agregar Institución")
+        self.btn_add = QPushButton("Agregar Institución")
+        self.btn_add.setIcon(add_icon())
         self.btn_add.clicked.connect(self._on_add_institucion)
         btns_h.addWidget(self.btn_add)
 

@@ -406,7 +406,7 @@ class DialogoAnalisisPaquetes(QDialog):
 
         # Sección 1
         print("[DEBUG] Añadiendo Sección 1: Ofertas Más Bajas...")
-        self._add_summary_label("📊 Análisis de Ofertas Más Bajas por Lote", font_size=11)
+        self._add_summary_label("Análisis de Ofertas Más Bajas por Lote", font_size=11)
         def _lote_sort_key(v: Any):
             s = str(v)
             return int(s) if s.isdigit() else s
