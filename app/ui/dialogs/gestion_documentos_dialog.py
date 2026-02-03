@@ -35,6 +35,13 @@ from .dialogo_seleccionar_documentos import DialogoSeleccionarDocumentos
 from .dialogo_confirmar_importacion import DialogoConfirmarImportacion
 from .dialogo_gestion_subsanacion import DialogoGestionSubsanacion
 
+# Imports de iconos SVG
+from app.ui.utils.icon_utils import (
+    add_icon, edit_icon, delete_icon, download_icon, upload_icon,
+    check_icon, close_icon, warning_icon, eye_icon, folder_icon, 
+    file_icon, icon
+)
+
 # Helpers
 from app.core.utils import reconstruir_ruta_absoluta
 from app.core.config import obtener_ruta_dropbox
@@ -218,7 +225,7 @@ class GestionDocumentosDialog(QDialog):
         self.tab_widget.setStyleSheet(self._TABS_QSS)
         main_layout.addWidget(self.tab_widget)
 
-        tab_names = self.categorias + ["⚠️ Subsanables"]
+        tab_names = self.categorias + ["Subsanables"]
         for tab_name in tab_names:
             is_subsanables_tab = "Subsanables" in tab_name
             tab_content_widget = QWidget()
@@ -250,11 +257,13 @@ class GestionDocumentosDialog(QDialog):
         action_layout.addWidget(self.responsable_combo)
         action_layout.addSpacing(20)
 
-        self.revisado_button = QPushButton("👁️ Marcar Revisado/No Revisado")
+        self.revisado_button = QPushButton("Marcar Revisado/No Revisado")
+        self.revisado_button.setIcon(eye_icon())
         self.revisado_button.setToolTip("Cambia el estado de revisión")
         action_layout.addWidget(self.revisado_button)
 
-        self.subsanable_button = QPushButton("⚖️ Cambiar Condición")
+        self.subsanable_button = QPushButton("Cambiar Condición")
+        self.subsanable_button.setIcon(icon("alert-triangle"))
         self.subsanable_button.setToolTip("Cambia la condición (Subsanable/No/Definido)")
         action_layout.addWidget(self.subsanable_button)
 
@@ -265,32 +274,41 @@ class GestionDocumentosDialog(QDialog):
         button_grid_widget = QWidget()
         button_grid_layout = QGridLayout(button_grid_widget)
         button_grid_layout.setSpacing(5)
-        style = self.style()
+
+        # Mapping de iconos SVG para cada acción
+        icon_mapping = {
+            "agregar_manual": add_icon(),
+            "importar_licitacion": download_icon(),
+            "agregar_maestro": icon("star"),
+            "editar": edit_icon(),
+            "eliminar": delete_icon(),
+            "cambiar_estado": check_icon(),
+            "adjuntar_archivo": upload_icon(),
+            "ver_archivo": folder_icon(),
+            "quitar_adjunto": close_icon(),
+            "gestionar_subsanacion": warning_icon(),
+        }
 
         acciones = {
-            "agregar_manual": ("➕ Añadir Manual...", self._add_document, QStyle.StandardPixmap.SP_FileDialogNewFolder),
-            "importar_licitacion": ("📥 Importar de Licitación...", self.importar_desde_licitacion, QStyle.StandardPixmap.SP_ArrowDown),
-            "agregar_maestro": ("✨ Añadir de Maestro Global...", self.agregar_desde_maestro, QStyle.StandardPixmap.SP_DriveNetIcon),
-            "editar": ("✏️ Editar...", self._edit_document, QStyle.StandardPixmap.SP_FileIcon),
-            "eliminar": ("🗑️ Eliminar", self._delete_documents, QStyle.StandardPixmap.SP_TrashIcon),
-            "cambiar_estado": ("✔️/❌ Presentado", self.cambiar_estado_presentado, QStyle.StandardPixmap.SP_DialogApplyButton),
-            "adjuntar_archivo": ("📎 Adjuntar Archivo...", self._attach_file, QStyle.StandardPixmap.SP_DriveHDIcon),
-            "ver_archivo": ("📂 Ver Archivo", self._view_file, QStyle.StandardPixmap.SP_FileDialogContentsView),
-            "quitar_adjunto": ("❌ Quitar Adjunto", self._remove_attachment, QStyle.StandardPixmap.SP_DialogCloseButton),
-            "gestionar_subsanacion": ("⚠️ Gestionar Subsanación...", self.iniciar_subsanacion, QStyle.StandardPixmap.SP_MessageBoxWarning),
+            "agregar_manual": ("Añadir Manual...", self._add_document),
+            "importar_licitacion": ("Importar de Licitación...", self.importar_desde_licitacion),
+            "agregar_maestro": ("Añadir de Maestro Global...", self.agregar_desde_maestro),
+            "editar": ("Editar...", self._edit_document),
+            "eliminar": ("Eliminar", self._delete_documents),
+            "cambiar_estado": ("✔️/❌ Presentado", self.cambiar_estado_presentado),
+            "adjuntar_archivo": ("Adjuntar Archivo...", self._attach_file),
+            "ver_archivo": ("Ver Archivo", self._view_file),
+            "quitar_adjunto": ("Quitar Adjunto", self._remove_attachment),
+            "gestionar_subsanacion": ("Gestionar Subsanación...", self.iniciar_subsanacion),
         }
 
         row, col = 0, 0
         max_cols = 4
 
-        for key, (text, func, icon_enum) in acciones.items():
+        for key, (text, func) in acciones.items():
             btn = QPushButton(text)
-            try:
-                icon = style.standardIcon(icon_enum)
-                if not icon.isNull():
-                    btn.setIcon(icon)
-            except AttributeError:
-                print(f"WARN: Icono {icon_enum} no encontrado para '{key}'")
+            if key in icon_mapping:
+                btn.setIcon(icon_mapping[key])
 
             # Asignar atributos de instancia
             if key == "editar":
@@ -349,7 +367,8 @@ class GestionDocumentosDialog(QDialog):
         self.subsanables_status_label = QLabel(f"<b>Fecha Límite:</b> {fecha}  |  <b>Estado Proceso:</b> {estado}")
         header_layout.addWidget(self.subsanables_status_label)
         header_layout.addStretch(1)
-        btn_finalizar = QPushButton("✅ Finalizar Proceso Subsanación")
+        btn_finalizar = QPushButton("Finalizar Proceso Subsanación")
+        btn_finalizar.setIcon(check_icon())
         btn_finalizar.setToolTip("Marca el proceso como 'Cumplido' y actualiza el historial.")
         btn_finalizar.clicked.connect(self._finalizar_proceso_subsanacion)
         header_layout.addWidget(btn_finalizar)
@@ -361,7 +380,8 @@ class GestionDocumentosDialog(QDialog):
         footer_frame.setStyleSheet(self._BOX_QSS)
         footer_layout = QHBoxLayout(footer_frame)
         footer_layout.setContentsMargins(8, 6, 8, 6)
-        btn_marcar_completo = QPushButton("✔️ Marcar Seleccionado(s) como Entregado")
+        btn_marcar_completo = QPushButton("Marcar Seleccionado(s) como Entregado")
+        btn_marcar_completo.setIcon(check_icon())
         btn_marcar_completo.clicked.connect(self._marcar_subsanables_completados)
         footer_layout.addWidget(btn_marcar_completo)
         footer_layout.addStretch(1)
@@ -375,7 +395,7 @@ class GestionDocumentosDialog(QDialog):
         else:
             table.setColumnCount(8)
             table.setHorizontalHeaderLabels([
-                "✓", "👁️", "📎", "Código", "Nombre Documento", "Categoría",
+                "✓", "Rev", "Adj", "Código", "Nombre Documento", "Categoría",
                 "Condición", "Responsable"
             ])
 
@@ -452,7 +472,7 @@ class GestionDocumentosDialog(QDialog):
             docs_in_cat = docs_by_cat.get(cat_name, [])
             self._populate_table(table, docs_in_cat)
 
-        sub_table = self._tables.get("⚠️ Subsanables")
+        sub_table = self._tables.get("Subsanables")
         if sub_table:
             self._populate_table(sub_table, docs_subsanables)
 
@@ -1016,7 +1036,7 @@ class GestionDocumentosDialog(QDialog):
 
     def _marcar_subsanables_completados(self):
         """Marca los documentos seleccionados en la pestaña 'Subsanables' como presentados."""
-        sub_table = self._tables.get("⚠️ Subsanables")
+        sub_table = self._tables.get("Subsanables")
         if not sub_table:
             return
 
@@ -1097,20 +1117,32 @@ class GestionDocumentosDialog(QDialog):
         """Configura las acciones del menú contextual."""
         if not hasattr(self, "_context_actions"):
             self._context_actions: Dict[str, QAction] = {}
-            style = self.style()
+            
+            # Mapping de iconos SVG para el menú contextual
+            action_icon_mapping = {
+                "edit": edit_icon(),
+                "delete": delete_icon(),
+                "attach": upload_icon(),
+                "view": folder_icon(),
+                "remove_attach": close_icon(),
+                "toggle_presentado": check_icon(),
+                "toggle_revisado": eye_icon(),
+                "change_condicion": icon("alert-triangle"),
+            }
+            
             action_defs = [
-                ("edit", "✏️ Editar Documento...", self._edit_document, QStyle.StandardPixmap.SP_FileIcon, True),
-                ("delete", "🗑️ Eliminar Documento(s)", self._delete_documents, QStyle.StandardPixmap.SP_TrashIcon, False),
-                ("separator1", "-", None, None, False),
-                ("attach", "📎 Adjuntar Archivo...", self._attach_file, QStyle.StandardPixmap.SP_DriveHDIcon, False),
-                ("view", "📂 Ver Archivo Adjunto", self._view_file, QStyle.StandardPixmap.SP_FileDialogContentsView, True),
-                ("remove_attach", "❌ Quitar Adjunto", self._remove_attachment, QStyle.StandardPixmap.SP_DialogCloseButton, True),
-                ("separator2", "-", None, None, False),
-                ("toggle_presentado", "✔️/❌ Cambiar Estado (Presentado)", self.cambiar_estado_presentado, QStyle.StandardPixmap.SP_DialogApplyButton, False),
-                ("toggle_revisado", "👁️ Marcar Revisado/No Revisado", self._toggle_estado_revisado, QStyle.StandardPixmap.SP_DialogYesButton, False),
-                ("change_condicion", "⚖️ Cambiar Condición", self.cambiar_estado_condicion, QStyle.StandardPixmap.SP_DialogHelpButton, True),
+                ("edit", "Editar Documento...", self._edit_document, True),
+                ("delete", "Eliminar Documento(s)", self._delete_documents, False),
+                ("separator1", "-", None, False),
+                ("attach", "Adjuntar Archivo...", self._attach_file, False),
+                ("view", "Ver Archivo Adjunto", self._view_file, True),
+                ("remove_attach", "Quitar Adjunto", self._remove_attachment, True),
+                ("separator2", "-", None, False),
+                ("toggle_presentado", "✔️/❌ Cambiar Estado (Presentado)", self.cambiar_estado_presentado, False),
+                ("toggle_revisado", "Marcar Revisado/No Revisado", self._toggle_estado_revisado, False),
+                ("change_condicion", "Cambiar Condición", self.cambiar_estado_condicion, True),
             ]
-            for key, text, func, icon_enum, single_only in action_defs:
+            for key, text, func, single_only in action_defs:
                 if key.startswith("separator"):
                     action = QAction(self)
                     action.setSeparator(True)
@@ -1118,12 +1150,8 @@ class GestionDocumentosDialog(QDialog):
                     action = QAction(text, self)
                     if func:
                         action.triggered.connect(func)
-                    if icon_enum:
-                        try:
-                            icon = style.standardIcon(icon_enum)
-                            action.setIcon(icon)
-                        except AttributeError:
-                            pass
+                    if key in action_icon_mapping:
+                        action.setIcon(action_icon_mapping[key])
                     action.setProperty("single_selection_only", single_only)
                 self._context_actions[key] = action
 

@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import (
 )
 
 from app.core.db_adapter import DatabaseAdapter
+from app.ui.utils.icon_utils import check_icon
 
 class DialogoGestionarCompetidores(QDialog):
     COL_NOM = 0
@@ -33,7 +34,6 @@ class DialogoGestionarCompetidores(QDialog):
 
         filt = QGroupBox("Buscar")
         fl = QHBoxLayout(filt)
-        fl.addWidget(QLabel("🔍"))
         self.txt_search = QLineEdit()
         self.txt_search.setPlaceholderText("Buscar por nombre o RNC…")
         self.txt_search.textChanged.connect(self._apply_filter)
@@ -56,7 +56,8 @@ class DialogoGestionarCompetidores(QDialog):
         self.btn_add = QPushButton("Agregar")
         self.btn_edit = QPushButton("Editar")
         self.btn_del = QPushButton("Eliminar")
-        self.btn_close = QPushButton("✅ Guardar Cambios y Cerrar")
+        self.btn_close = QPushButton("Guardar Cambios y Cerrar")
+        self.btn_close.setIcon(check_icon())
         self.btn_add.clicked.connect(self._add)
         self.btn_edit.clicked.connect(self._edit)
         self.btn_del.clicked.connect(self._del)

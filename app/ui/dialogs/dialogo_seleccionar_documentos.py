@@ -56,7 +56,7 @@ class DialogoSeleccionarDocumentos(QDialog):
         filter_layout = QHBoxLayout(filter_frame)
         filter_layout.setContentsMargins(0,0,0,5)
         
-        filter_layout.addWidget(QLabel("🔍 Buscar:"))
+        filter_layout.addWidget(QLabel("Buscar:"))
         self.search_edit = QLineEdit()
         self.search_edit.setPlaceholderText("Buscar por código o nombre...")
         self.search_edit.textChanged.connect(self._apply_filters)

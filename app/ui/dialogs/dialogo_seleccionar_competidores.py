@@ -54,7 +54,7 @@ class DialogoSeleccionarCompetidores(QDialog):
 
         # --- Búsqueda ---
         search_layout = QHBoxLayout()
-        search_layout.addWidget(QLabel("🔍 Buscar:"))
+        search_layout.addWidget(QLabel("Buscar:"))
         self.search_edit = QLineEdit()
         self.search_edit.setPlaceholderText("Filtrar por nombre o RNC...")
         # Conectar textChanged al timer

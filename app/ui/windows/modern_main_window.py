@@ -20,6 +20,11 @@ from app.ui.widgets.modern_widgets import ModernSidebar
 from app.ui.views.dashboard_view import DashboardView
 from app.ui.views.licitaciones_list_view import LicitacionesListView
 
+# Imports de iconos SVG
+from app.ui.utils.icon_utils import (
+    chart_icon, list_icon, settings_icon
+)
+
 # Importaciones condicionales
 def safe_import(module_path: str, class_name: str):
     """Importa una clase de forma segura, retorna None si falla."""
@@ -94,8 +99,8 @@ class ModernMainWindow(QMainWindow):
         self.sidebar = ModernSidebar()
         
         # ✅ Añadir items de navegación
-        self.sidebar.add_navigation_item("dashboard", "Dashboard General", "📊")
-        self.sidebar.add_navigation_item("licitaciones", "Gestión Licitaciones", "📋")
+        self.sidebar.add_navigation_item("dashboard", "Dashboard General", "")
+        self.sidebar.add_navigation_item("licitaciones", "Gestión Licitaciones", "")
         self.sidebar.add_navigation_item("reportes", "Reportes", "📈")
         
         self.sidebar.item_selected.connect(self._on_sidebar_navigation)
@@ -152,7 +157,8 @@ class ModernMainWindow(QMainWindow):
         sublabel.setStyleSheet("font-size: 14px; color: #B0B0B0;")
         layout.addWidget(sublabel, alignment=Qt.AlignmentFlag.AlignCenter)
         
-        btn = QPushButton("📊 Abrir KPIs y Reportes Avanzados")
+        btn = QPushButton("Abrir KPIs y Reportes Avanzados")
+        btn.setIcon(chart_icon())
         btn.setFixedWidth(300)
         btn.clicked.connect(self._abrir_reportes_kpis)
         layout.addWidget(btn, alignment=Qt.AlignmentFlag.AlignCenter)
@@ -166,7 +172,7 @@ class ModernMainWindow(QMainWindow):
         # --- Menú Archivo ---
         menu_archivo = menubar.addMenu("&Archivo")
         
-        self.act_config_firebase = QAction("⚙️  Configurar Firebase...", self)
+        self.act_config_firebase = QAction(settings_icon(), "Configurar Firebase...", self)
         self.act_config_firebase.setShortcut(QKeySequence("Ctrl+Shift+F"))
         self.act_config_firebase.triggered.connect(self._abrir_configuracion_firebase)
         menu_archivo.addAction(self.act_config_firebase)
@@ -191,7 +197,7 @@ class ModernMainWindow(QMainWindow):
         # --- Menú Dashboards ---
         menu_dashboards = menubar.addMenu("&Dashboards")
         
-        self.act_dashboard_global = QAction("📊 Dashboard Global (Analítico)", self)
+        self.act_dashboard_global = QAction(chart_icon(), "Dashboard Global (Analítico)", self)
         self.act_dashboard_global.triggered.connect(self._abrir_dashboard_global)
         menu_dashboards.addAction(self.act_dashboard_global)
         
@@ -208,14 +214,14 @@ class ModernMainWindow(QMainWindow):
         
         menu_reportes.addSeparator()
         
-        self.act_reportes_kpis = QAction("📊 KPIs y Reportes Avanzados", self)
+        self.act_reportes_kpis = QAction(chart_icon(), "KPIs y Reportes Avanzados", self)
         self.act_reportes_kpis.triggered.connect(self._abrir_reportes_kpis)
         menu_reportes.addAction(self.act_reportes_kpis)
         
         # --- Menú Gestión ---
         menu_gestion = menubar.addMenu("&Gestión")
         
-        self.act_tareas = QAction("📋 Gestionar Tareas", self)
+        self.act_tareas = QAction(list_icon(), "Gestionar Tareas", self)
         self.act_tareas.triggered.connect(self._abrir_gestion_tareas)
         menu_gestion.addAction(self.act_tareas)
         

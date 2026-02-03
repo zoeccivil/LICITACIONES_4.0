@@ -35,6 +35,11 @@ from app.core.db_adapter import DatabaseAdapter
     #
 from app.core.models import Licitacion, Documento
 
+# Imports de iconos SVG
+from app.ui.utils.icon_utils import (
+    chart_icon, search_icon, edit_icon
+)
+
 
 class DashboardWidget(QWidget):
     """
@@ -112,7 +117,7 @@ class DashboardWidget(QWidget):
         self.tab_resumen = QWidget()
         self.v_resumen_layout = QVBoxLayout(self.tab_resumen)
         self._build_resumen_tab()
-        self.tabs.addTab(self.tab_resumen, "📊 Resumen General")
+        self.tabs.addTab(self.tab_resumen, chart_icon(), "Resumen General")
 
         # Competencia
         self.tab_comp = QWidget()
@@ -124,7 +129,7 @@ class DashboardWidget(QWidget):
         self.tab_fallas = QWidget()
         self.v_fallas_layout = QVBoxLayout(self.tab_fallas)
         self._build_fallas_tab()
-        self.tabs.addTab(self.tab_fallas, "🔍 Fallas Fase A")
+        self.tabs.addTab(self.tab_fallas, search_icon(), "Fallas Fase A")
 
         # Atajos
         QShortcut(QKeySequence("F5"), self, activated=self.reload_data)
@@ -561,7 +566,7 @@ class DashboardWidget(QWidget):
     # ----------------- Pestaña Competencia -----------------
     def _build_competencia_tab(self):
         top = QHBoxLayout()
-        top.addWidget(QLabel("🔍 Buscar (Nombre o RNC):"))
+        top.addWidget(QLabel("Buscar (Nombre o RNC):"))
         self.txt_comp_search = QLineEdit()
         self.txt_comp_search.textChanged.connect(self._filter_competidores_table)
         top.addWidget(self.txt_comp_search, 1)
@@ -604,7 +609,8 @@ class DashboardWidget(QWidget):
 
         actions = QHBoxLayout()
         self.btn_fdel = QPushButton("🗑 Eliminar seleccionadas")
-        self.btn_fedit = QPushButton("✏️ Editar comentario…")
+        self.btn_fedit = QPushButton("Editar comentario…")
+        self.btn_fedit.setIcon(edit_icon())
         # Botones secundarios, estilo neutro (deja que el tema global mande)
         actions.addWidget(self.btn_fdel)
         actions.addWidget(self.btn_fedit)

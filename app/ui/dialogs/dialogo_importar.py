@@ -14,6 +14,7 @@ from PyQt6.QtWidgets import (
 
 from app.core.importer import ExcelImporter, ImportResult
 from app.core.db_adapter import DatabaseAdapter
+from app.ui.utils.icon_utils import eye_icon, check_icon
 
 
 class DialogoImportarDatos(QDialog):
@@ -91,12 +92,14 @@ class DialogoImportarDatos(QDialog):
         # Botones
         actions = QHBoxLayout()
         
-        self.btn_previsualizar = QPushButton("👁️ Previsualizar")
+        self.btn_previsualizar = QPushButton("Previsualizar")
+        self.btn_previsualizar.setIcon(eye_icon())
         self.btn_previsualizar.clicked.connect(self._previsualizar)
         self.btn_previsualizar.setEnabled(False)
         actions.addWidget(self.btn_previsualizar)
         
-        self.btn_importar = QPushButton("✅ Importar")
+        self.btn_importar = QPushButton("Importar")
+        self.btn_importar.setIcon(check_icon())
         self.btn_importar.clicked.connect(self._importar)
         self.btn_importar.setEnabled(False)
         actions.addWidget(self.btn_importar)

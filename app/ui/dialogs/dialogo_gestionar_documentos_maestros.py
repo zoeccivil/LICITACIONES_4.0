@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import (
 
 from app.core.db_adapter import DatabaseAdapter
 from app.core.models import Documento
+from app.ui.utils.icon_utils import add_icon, edit_icon, close_icon, check_icon
 
 class DialogoGestionarDocumentosMaestros(QDialog):
     COL_ADJ = 0
@@ -74,13 +75,17 @@ class DialogoGestionarDocumentosMaestros(QDialog):
 
         # Acciones
         actions = QHBoxLayout()
-        self.btn_add = QPushButton("➕ Agregar")
-        self.btn_edit = QPushButton("✏️ Editar")
+        self.btn_add = QPushButton("Agregar")
+        self.btn_add.setIcon(add_icon())
+        self.btn_edit = QPushButton("Editar")
+        self.btn_edit.setIcon(edit_icon())
         self.btn_del = QPushButton("🗑 Eliminar")
         self.btn_attach = QPushButton("📎 Adjuntar Plantilla")
         self.btn_open = QPushButton("📂 Ver Plantilla")
-        self.btn_remove = QPushButton("❌ Quitar Plantilla")
-        self.btn_close = QPushButton("✅ Guardar y Cerrar")
+        self.btn_remove = QPushButton("Quitar Plantilla")
+        self.btn_remove.setIcon(close_icon())
+        self.btn_close = QPushButton("Guardar y Cerrar")
+        self.btn_close.setIcon(check_icon())
 
         self.btn_add.clicked.connect(self._add)
         self.btn_edit.clicked.connect(self._edit)

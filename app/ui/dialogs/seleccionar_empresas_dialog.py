@@ -20,7 +20,7 @@ class SeleccionarEmpresasDialog(QDialog):
 
         # Buscador
         search_layout = QHBoxLayout()
-        search_layout.addWidget(QLabel("🔍 Buscar:"))
+        search_layout.addWidget(QLabel("Buscar:"))
         self.search_edit = QLineEdit()
         self.search_edit.textChanged.connect(self._populate_tree)
         search_layout.addWidget(self.search_edit)

@@ -49,6 +49,11 @@ except ImportError as e:
 except Exception as e:
     print(f"[ERROR] ✗ Error importando ReportWindow: {e}")
 
+# Imports de iconos SVG
+from app.ui.utils.icon_utils import (
+    chart_icon, calendar_icon, folder_icon, list_icon
+)
+
 
 class ReportCard(QFrame):
     """Card interactiva para un tipo de reporte."""
@@ -222,7 +227,7 @@ class ReportesView(QWidget):
         content_layout.setSpacing(25)
         
         # Título
-        title = QLabel("📊 Centro de Reportes")
+        title = QLabel("Centro de Reportes")
         title.setStyleSheet(f"""
             QLabel {{
                 font-size: 28pt;
@@ -356,7 +361,8 @@ class ReportesView(QWidget):
         layout.setSpacing(15)
         
         # Botón: Abrir carpeta de reportes
-        btn_abrir_carpeta = QPushButton("📁 Abrir Carpeta de Reportes")
+        btn_abrir_carpeta = QPushButton("Abrir Carpeta de Reportes")
+        btn_abrir_carpeta.setIcon(folder_icon())
         btn_abrir_carpeta.clicked.connect(self._abrir_carpeta_reportes)
         btn_abrir_carpeta.setStyleSheet(f"""
             QPushButton {{
@@ -375,7 +381,8 @@ class ReportesView(QWidget):
         layout.addWidget(btn_abrir_carpeta)
         
         # Botón: Ver últimos reportes
-        btn_ultimos = QPushButton("📋 Últimos Reportes")
+        btn_ultimos = QPushButton("Últimos Reportes")
+        btn_ultimos.setIcon(list_icon())
         btn_ultimos.clicked.connect(self._ver_ultimos_reportes)
         btn_ultimos.setStyleSheet(btn_abrir_carpeta.styleSheet().replace(self.colors['info'], self.colors['success']))
         layout.addWidget(btn_ultimos)

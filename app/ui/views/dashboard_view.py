@@ -96,7 +96,7 @@ class DashboardView(QWidget):
         content_layout.setSpacing(20)
         
         # Título
-        title = QLabel("📊 Dashboard General")
+        title = QLabel("Dashboard General")
         title.setStyleSheet(f"""
             QLabel {{
                 font-size: 28pt;

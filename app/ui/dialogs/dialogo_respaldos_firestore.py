@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import (
 )
 
 from app.core.firestore_backup import FirestoreBackupManager
+from app.ui.utils.icon_utils import save_icon, settings_icon, delete_icon, refresh_icon
 
 
 class BackupThread(QThread):
@@ -123,23 +124,27 @@ class DialogoRespaldosFirestore(QDialog):
         # Botones de acción
         actions = QHBoxLayout()
         
-        self.btn_create_backup = QPushButton("💾 Crear Respaldo Ahora")
+        self.btn_create_backup = QPushButton("Crear Respaldo Ahora")
+        self.btn_create_backup.setIcon(save_icon())
         self.btn_create_backup.clicked.connect(self._create_backup)
         actions.addWidget(self.btn_create_backup)
         
-        self.btn_restore = QPushButton("⚙️ Restaurar desde Respaldo")
+        self.btn_restore = QPushButton("Restaurar desde Respaldo")
+        self.btn_restore.setIcon(settings_icon())
         self.btn_restore.clicked.connect(self._restore_backup)
         self.btn_restore.setEnabled(False)
         actions.addWidget(self.btn_restore)
         
-        self.btn_delete = QPushButton("🗑️ Eliminar Respaldo")
+        self.btn_delete = QPushButton("Eliminar Respaldo")
+        self.btn_delete.setIcon(delete_icon())
         self.btn_delete.clicked.connect(self._delete_backup)
         self.btn_delete.setEnabled(False)
         actions.addWidget(self.btn_delete)
         
         actions.addStretch(1)
         
-        btn_refresh = QPushButton("🔄 Actualizar")
+        btn_refresh = QPushButton("Actualizar")
+        btn_refresh.setIcon(refresh_icon())
         btn_refresh.clicked.connect(self._refresh)
         actions.addWidget(btn_refresh)
         
