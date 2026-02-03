@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import (
 )
 
 from app.core.audit_logger import AuditLogger
+from app.ui.utils.icon_utils import refresh_icon, edit_icon, delete_icon
 
 
 class DialogoHistorial(QDialog):
@@ -98,7 +99,8 @@ class DialogoHistorial(QDialog):
         actions = QHBoxLayout()
         actions.addStretch(1)
         
-        btn_refresh = QPushButton("🔄 Actualizar")
+        btn_refresh = QPushButton("Actualizar")
+        btn_refresh.setIcon(refresh_icon())
         btn_refresh.clicked.connect(self._load_history)
         actions.addWidget(btn_refresh)
         
@@ -152,8 +154,8 @@ class DialogoHistorial(QDialog):
             action = entry.get("action", "")
             action_display = {
                 "create": "✨ Crear",
-                "update": "✏️ Actualizar",
-                "delete": "🗑️ Eliminar",
+                "update": "Actualizar",
+                "delete": "Eliminar",
             }.get(action, action)
             
             self.tbl.setItem(row, self.COL_FECHA, QTableWidgetItem(fecha_display))
@@ -273,7 +275,8 @@ class DialogoHistorialCompleto(QDialog):
         actions = QHBoxLayout()
         actions.addStretch(1)
         
-        btn_refresh = QPushButton("🔄 Actualizar")
+        btn_refresh = QPushButton("Actualizar")
+        btn_refresh.setIcon(refresh_icon())
         btn_refresh.clicked.connect(self._load_history)
         actions.addWidget(btn_refresh)
         
@@ -332,8 +335,8 @@ class DialogoHistorialCompleto(QDialog):
             action = entry.get("action", "")
             action_display = {
                 "create": "✨ Crear",
-                "update": "✏️ Actualizar",
-                "delete": "🗑️ Eliminar",
+                "update": "Actualizar",
+                "delete": "Eliminar",
             }.get(action, action)
             
             self.tbl.setItem(row, self.COL_FECHA, QTableWidgetItem(fecha_display))

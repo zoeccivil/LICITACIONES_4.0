@@ -14,6 +14,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor
 
 from app.core.db_adapter import DatabaseAdapter
+from app.ui.utils.icon_utils import search_icon
 
 
 class SeleccionarLicitacionDialog(QDialog):
@@ -55,7 +56,7 @@ class SeleccionarLicitacionDialog(QDialog):
         search_layout = QHBoxLayout()
         search_layout.setSpacing(10)
         
-        search_label = QLabel("🔍 Buscar:")
+        search_label = QLabel("Buscar:")
         search_label.setStyleSheet("font-size: 11pt; font-weight: 600;")
         search_layout.addWidget(search_label)
         

@@ -205,14 +205,14 @@ class TabDetailsGeneral(QWidget):
         main_layout.addWidget(group_docs)
 
         buttons_docs_info = [
-            ("👀 Ver checklist...", self._abrir_visor_docs, "document-open-recent", QStyle.StandardPixmap.SP_FileDialogDetailedView),
-            ("🛠️ Gestionar Documentos...", self._abrir_gestion_docs, "document-edit", QStyle.StandardPixmap.SP_FileDialogContentsView),
-            ("🔀 Ordenar Docs (Guardar)", self._ordenar_docs, "view-sort-ascending", QStyle.StandardPixmap.SP_ArrowUp),
-            ("📄 Generar Expediente PDF", self._generar_expediente_pdf, "application-pdf", QStyle.StandardPixmap.SP_FileIcon),
-            ("🗃️ Generar ZIP Categoría", self._generar_expediente_zip, "application-zip", QStyle.StandardPixmap.SP_DriveHDIcon),
-            ("🗂️ Abrir Carpeta Destino", self._abrir_carpeta_destino, "folder-open", QStyle.StandardPixmap.SP_DirOpenIcon),
-            ("🔎 Validar Faltantes", self._validar_faltantes, "edit-find", QStyle.StandardPixmap.SP_DialogYesButton),
-            ("📜 Ver Historial Subsanación", self._abrir_historial_subsanacion, "view-history", QStyle.StandardPixmap.SP_MessageBoxInformation),
+            ("Ver checklist...", self._abrir_visor_docs, "document-open-recent", QStyle.StandardPixmap.SP_FileDialogDetailedView),
+            ("Gestionar Documentos...", self._abrir_gestion_docs, "document-edit", QStyle.StandardPixmap.SP_FileDialogContentsView),
+            ("Ordenar Docs (Guardar)", self._ordenar_docs, "view-sort-ascending", QStyle.StandardPixmap.SP_ArrowUp),
+            ("Generar Expediente PDF", self._generar_expediente_pdf, "application-pdf", QStyle.StandardPixmap.SP_FileIcon),
+            ("Generar ZIP Categoría", self._generar_expediente_zip, "application-zip", QStyle.StandardPixmap.SP_DriveHDIcon),
+            ("Abrir Carpeta Destino", self._abrir_carpeta_destino, "folder-open", QStyle.StandardPixmap.SP_DirOpenIcon),
+            ("Validar Faltantes", self._validar_faltantes, "edit-find", QStyle.StandardPixmap.SP_DialogYesButton),
+            ("Ver Historial Subsanación", self._abrir_historial_subsanacion, "view-history", QStyle.StandardPixmap.SP_MessageBoxInformation),
         ]
 
         row, col = 0, 0

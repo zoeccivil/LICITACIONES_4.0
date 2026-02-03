@@ -16,6 +16,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 from app.core import lic_config  # ← Import único, correcto
+from app.ui.utils.icon_utils import close_icon, search_icon, save_icon
 
 
 class FirebaseConfigDialog(QDialog):
@@ -112,15 +113,18 @@ class FirebaseConfigDialog(QDialog):
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
 
-        btn_cancel = QPushButton("❌ Cancelar")
+        btn_cancel = QPushButton("Cancelar")
+        btn_cancel.setIcon(close_icon())
         btn_cancel.clicked.connect(self.reject)
         btn_layout.addWidget(btn_cancel)
 
-        btn_test = QPushButton("🔍 Validar conexión")
+        btn_test = QPushButton("Validar conexión")
+        btn_test.setIcon(search_icon())
         btn_test.clicked.connect(self._test_connection)
-        btn_layout. addWidget(btn_test)
+        btn_layout.addWidget(btn_test)
 
-        btn_save = QPushButton("💾 Guardar y conectar")
+        btn_save = QPushButton("Guardar y conectar")
+        btn_save.setIcon(save_icon())
         btn_save.clicked.connect(self._save_and_accept)
         btn_save.setDefault(True)
         btn_save.setProperty("class", "primary")  # se verá como botón principal con Titanium

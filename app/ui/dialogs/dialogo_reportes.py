@@ -14,6 +14,7 @@ from PyQt6.QtCore import QDate
 
 from app.core.reporting import ReportingEngine
 from app.core.db_adapter import DatabaseAdapter
+from app.ui.utils.icon_utils import refresh_icon, chart_icon, calendar_icon
 
 
 class DialogoReportes(QDialog):
@@ -57,7 +58,8 @@ class DialogoReportes(QDialog):
         self._cargar_instituciones()
         filtros_layout.addWidget(self.combo_institucion)
         
-        btn_actualizar = QPushButton("🔄 Actualizar")
+        btn_actualizar = QPushButton("Actualizar")
+        btn_actualizar.setIcon(refresh_icon())
         btn_actualizar.clicked.connect(self._calcular_kpis)
         filtros_layout.addWidget(btn_actualizar)
         
@@ -134,11 +136,13 @@ class DialogoReportes(QDialog):
         # Acciones de exportación
         export_layout = QHBoxLayout()
         
-        btn_exportar_excel = QPushButton("📊 Exportar a Excel")
+        btn_exportar_excel = QPushButton("Exportar a Excel")
+        btn_exportar_excel.setIcon(chart_icon())
         btn_exportar_excel.clicked.connect(self._exportar_excel)
         export_layout.addWidget(btn_exportar_excel)
         
-        btn_reportar_mensual = QPushButton("📅 Reporte Mensual")
+        btn_reportar_mensual = QPushButton("Reporte Mensual")
+        btn_reportar_mensual.setIcon(calendar_icon())
         btn_reportar_mensual.clicked.connect(self._generar_reporte_mensual)
         export_layout.addWidget(btn_reportar_mensual)
         

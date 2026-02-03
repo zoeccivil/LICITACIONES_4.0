@@ -17,6 +17,7 @@ from app.ui.models.licitaciones_table_model import LicitacionesTableModel
 from app.ui.windows.dashboard_window import DashboardWindow
 from app.ui.views.dashboard_widget import DashboardWidget
 from app.ui.windows.licitation_details_window import LicitationDetailsWindow
+from app.ui.utils.icon_utils import settings_icon, chart_icon, list_icon
 
 # Manejo de Reportes y Diálogos con Safe Import
 try:
@@ -111,7 +112,8 @@ class MainWindow(QMainWindow):
 
             # --- Menú Archivo ---
             m_archivo = menubar.addMenu("&Archivo")
-            self.act_config_firebase = m_archivo.addAction("⚙️ Configurar Firebase…", self._abrir_configuracion_firebase)
+            self.act_config_firebase = m_archivo.addAction("Configurar Firebase…", self._abrir_configuracion_firebase)
+            self.act_config_firebase.setIcon(settings_icon())
             m_archivo.addSeparator()
             self.act_sel_crear_db = m_archivo.addAction("Seleccionar/Crear DB…", self._accion_seleccionar_o_crear_db)
             self.act_backup = m_archivo.addAction("Copia de Seguridad…", self._accion_backup_db)
@@ -128,11 +130,13 @@ class MainWindow(QMainWindow):
             self.act_reporte_global = m_reportes.addAction("Reporte Global…", self._abrir_reporte_global)
             self.act_reporte_sel = m_reportes.addAction("Reporte de Selección…", self._abrir_reporte_de_seleccionada)
             m_reportes.addSeparator()
-            self.act_reportes_kpis = m_reportes.addAction("📊 KPIs y Reportes Avanzados", self._abrir_reportes_kpis)
+            self.act_reportes_kpis = m_reportes.addAction("KPIs y Reportes Avanzados", self._abrir_reportes_kpis)
+            self.act_reportes_kpis.setIcon(chart_icon())
 
             # --- Menú Gestión (Unificado) ---
             m_gestion = menubar.addMenu("&Gestión")
-            self.act_tareas = m_gestion.addAction("📋 Gestionar Tareas", self._abrir_gestion_tareas)
+            self.act_tareas = m_gestion.addAction("Gestionar Tareas", self._abrir_gestion_tareas)
+            self.act_tareas.setIcon(list_icon())
             self.act_historial = m_gestion.addAction("📜 Historial de Auditoría", self._abrir_historial_completo)
             m_gestion.addSeparator()
             self.act_plantillas = m_gestion.addAction("📝 Gestionar Plantillas", self._abrir_plantillas)

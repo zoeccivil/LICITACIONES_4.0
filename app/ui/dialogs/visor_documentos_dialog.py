@@ -146,7 +146,7 @@ class VisorDocumentosDialog(QDialog):
 
             table = QTableWidget()
             table.setColumnCount(7)
-            table.setHorizontalHeaderLabels(["✓", "Código", "Documento", "Condición", "👁️", "📎", "Orden"])
+            table.setHorizontalHeaderLabels(["✓", "Código", "Documento", "Condición", "Rev", "Adj", "Orden"])
             table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
             table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
             table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
