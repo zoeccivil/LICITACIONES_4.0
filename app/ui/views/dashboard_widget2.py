@@ -29,6 +29,11 @@ from PyQt6.QtWidgets import (
     QGroupBox, QSplitter, QMenu, QFrame, QInputDialog  # <-- añade QInputDialog
 )
 
+# Imports de iconos SVG
+from app.ui.utils.icon_utils import (
+    chart_icon, search_icon, edit_icon
+)
+
 class DashboardWidget(QWidget):
     """
     Dashboard embebido (widget) con pestañas:
@@ -118,7 +123,7 @@ class DashboardWidget(QWidget):
         self.tab_resumen = QWidget()
         self.v_resumen = QVBoxLayout(self.tab_resumen)
         self._build_resumen_tab()
-        self.tabs.addTab(self.tab_resumen, "📊 Resumen General")
+        self.tabs.addTab(self.tab_resumen, chart_icon(), "Resumen General")
 
         # Tab Competencia (sin cambios mayores por ahora)
         self.tab_comp = QWidget()
@@ -130,7 +135,7 @@ class DashboardWidget(QWidget):
         self.tab_fallas = QWidget()
         self.v_fallas = QVBoxLayout(self.tab_fallas)
         self._build_fallas_tab()
-        self.tabs.addTab(self.tab_fallas, "🔍 Fallas Fase A")
+        self.tabs.addTab(self.tab_fallas, search_icon(), "Fallas Fase A")
 
         # Atajos
         QShortcut(QKeySequence("F5"), self, activated=self.reload_data)
@@ -175,7 +180,8 @@ class DashboardWidget(QWidget):
         h.addWidget(self.dt_hasta)
 
         # Botones
-        self.btn_aplicar = QPushButton("🔍 Aplicar")
+        self.btn_aplicar = QPushButton("Aplicar")
+        self.btn_aplicar.setIcon(search_icon())
         self.btn_limpiar = QPushButton("🧹 Limpiar")
         self.btn_refrescar = QPushButton("↻ Refrescar")
 
@@ -339,7 +345,7 @@ class DashboardWidget(QWidget):
     # ----------------- Competencia (básico, sin makeover aún) -----------------
     def _build_competencia_tab(self):
         top = QHBoxLayout()
-        top.addWidget(QLabel("🔍 Buscar (Nombre o RNC):"))
+        top.addWidget(QLabel("Buscar (Nombre o RNC):"))
         self.txt_comp_search = QLineEdit()
         self.txt_comp_search.textChanged.connect(self._filter_competidores_table)
         top.addWidget(self.txt_comp_search, 1)
@@ -400,7 +406,8 @@ class DashboardWidget(QWidget):
 
         actions = QHBoxLayout()
         self.btn_fdel = QPushButton("🗑 Eliminar seleccionadas")
-        self.btn_fedit = QPushButton("✏️ Editar comentario…")
+        self.btn_fedit = QPushButton("Editar comentario…")
+        self.btn_fedit.setIcon(edit_icon())
         self.btn_fdel.clicked.connect(self._delete_fallas_selected)
         self.btn_fedit.clicked.connect(self._edit_fallas_comment)
         actions.addWidget(self.btn_fdel)

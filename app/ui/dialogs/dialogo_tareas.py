@@ -15,6 +15,12 @@ from PyQt6.QtCore import QDate
 
 from app.core.tasks_manager import TasksManager, Task
 
+# Imports de iconos SVG
+from app.ui.utils.icon_utils import (
+    add_icon, edit_icon, delete_icon, refresh_icon, 
+    warning_icon, list_icon, check_icon, save_icon
+)
+
 
 class DialogoGestionarTareas(QDialog):
     """Diálogo para gestionar tareas con vista Kanban simplificada."""
@@ -53,7 +59,8 @@ class DialogoGestionarTareas(QDialog):
         # Filtros y acciones rápidas
         top_bar = QHBoxLayout()
         
-        btn_nueva = QPushButton("➕ Nueva Tarea")
+        btn_nueva = QPushButton("Nueva Tarea")
+        btn_nueva.setIcon(add_icon())
         btn_nueva.clicked.connect(self._nueva_tarea)
         top_bar.addWidget(btn_nueva)
         
@@ -77,7 +84,8 @@ class DialogoGestionarTareas(QDialog):
         
         top_bar.addStretch(1)
         
-        btn_vencidas = QPushButton("⚠️ Ver Vencidas")
+        btn_vencidas = QPushButton("Ver Vencidas")
+        btn_vencidas.setIcon(warning_icon())
         btn_vencidas.clicked.connect(self._ver_vencidas)
         top_bar.addWidget(btn_vencidas)
         
@@ -109,11 +117,13 @@ class DialogoGestionarTareas(QDialog):
         # Acciones
         actions = QHBoxLayout()
         
-        self.btn_editar = QPushButton("✏️ Editar")
+        self.btn_editar = QPushButton("Editar")
+        self.btn_editar.setIcon(edit_icon())
         self.btn_editar.clicked.connect(self._editar_tarea)
         actions.addWidget(self.btn_editar)
         
-        self.btn_cambiar_estado = QPushButton("🔄 Cambiar Estado")
+        self.btn_cambiar_estado = QPushButton("Cambiar Estado")
+        self.btn_cambiar_estado.setIcon(refresh_icon())
         self.btn_cambiar_estado.clicked.connect(self._cambiar_estado)
         actions.addWidget(self.btn_cambiar_estado)
         
@@ -121,13 +131,15 @@ class DialogoGestionarTareas(QDialog):
         self.btn_comentario.clicked.connect(self._agregar_comentario)
         actions.addWidget(self.btn_comentario)
         
-        self.btn_eliminar = QPushButton("🗑️ Eliminar")
+        self.btn_eliminar = QPushButton("Eliminar")
+        self.btn_eliminar.setIcon(delete_icon())
         self.btn_eliminar.clicked.connect(self._eliminar_tarea)
         actions.addWidget(self.btn_eliminar)
         
         actions.addStretch(1)
         
-        btn_actualizar = QPushButton("🔄 Actualizar")
+        btn_actualizar = QPushButton("Actualizar")
+        btn_actualizar.setIcon(refresh_icon())
         btn_actualizar.clicked.connect(self._load_tasks)
         actions.addWidget(btn_actualizar)
         
@@ -174,13 +186,13 @@ class DialogoGestionarTareas(QDialog):
             # Título
             self.tbl.setItem(row, self.COL_TITULO, QTableWidgetItem(task.titulo))
             
-            # Estado con emoji
+            # Estado con texto
             estado_emoji = {
-                "To-Do": "📋",
-                "En curso": "🔄",
-                "Hecho": "✅",
+                "To-Do": "Todo",
+                "En curso": "En curso",
+                "Hecho": "Hecho",
             }.get(task.estado, "")
-            estado_display = f"{estado_emoji} {task.estado}"
+            estado_display = f"{estado_emoji}"
             self.tbl.setItem(row, self.COL_ESTADO, QTableWidgetItem(estado_display))
             
             # Responsable
@@ -383,7 +395,8 @@ class DialogoEditarTarea(QDialog):
         actions = QHBoxLayout()
         actions.addStretch(1)
         
-        btn_guardar = QPushButton("💾 Guardar")
+        btn_guardar = QPushButton("Guardar")
+        btn_guardar.setIcon(save_icon())
         btn_guardar.clicked.connect(self._guardar)
         actions.addWidget(btn_guardar)
         
